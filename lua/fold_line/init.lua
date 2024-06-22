@@ -1,6 +1,8 @@
 local api = vim.api
 local ns = api.nvim_create_namespace("FoldLine")
 
+api.nvim_set_hl(0, "FoldLine", { default = true, link = "Folded" })
+
 local ffi = require("ffi")
 ffi.cdef([[
 	typedef struct {} Error;
@@ -72,7 +74,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 	api.nvim_win_set_hl_ns(winid, ns)
 
-	config.virt_text = { { "", "Folded" } }
+	config.virt_text = { { "", "FoldLine" } }
 
 	local indent_cache = {}
 	local last_line = api.nvim_buf_line_count(bufnr)
