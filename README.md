@@ -1,6 +1,6 @@
 # fold_line.nvim
 
-lines, not for indent, but for fold.
+Lines, not for indentation, but for folding.
 
 ## install
 
