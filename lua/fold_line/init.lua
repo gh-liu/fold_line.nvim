@@ -76,7 +76,22 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 	config.virt_text = { { "", "FoldLine" } }
 
-	local indent_cache = {}
+	local get_indent = (function()
+		local indent_cache = {}
+		return function(win, buf, l)
+			if not indent_cache[l] then
+				api.nvim_win_call(win, function()
+					local last_line = api.nvim_buf_line_count(buf)
+					for line = 1, last_line do
+						if l == vim.fn.foldlevel(line) then
+							indent_cache[l] = get_indent_of_line(bufnr, line)
+						end
+					end
+				end)
+			end
+			return indent_cache[l]
+		end
+	end)()
 	local last_line = api.nvim_buf_line_count(bufnr)
 	for row = toprow, botrow do
 		local line = row + 1
@@ -88,10 +103,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				local line_after = (line + 1) <= last_line and (line + 1) or last_line
 				local foldinfo_before = get_fold_info(winid, line_before)
 				local foldinfo_after = get_fold_info(winid, line_after)
-
-				if not indent_cache[foldinfo.start] then
-					indent_cache[level] = get_indent_of_line(bufnr, foldinfo.start)
-				end
 
 				for l = 1, level, 1 do
 					local sign
@@ -137,8 +148,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 
 					config.virt_text[1][1] = sign
-					local indent = indent_cache[l] or 0
-					config.virt_text_win_col = indent + border_shift
+					config.virt_text_win_col = get_indent(winid, bufnr, l) + border_shift
 					api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
 				end
 			end
