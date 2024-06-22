@@ -35,11 +35,11 @@ local config = {
 
 local chars = vim.opt.fillchars:get()
 local fold_signs = {
-	f_top_close = chars.foldclose or "+",
-	f_close = chars.vertright or "├",
-	f_sep = chars.foldsep or "│",
-	f_open = "┌",
-	f_end = "└",
+	f_top_close = vim.g.fold_line_char_top_close or chars.foldclose or "+",
+	f_close = vim.g.fold_line_char_close or chars.vertright or "├",
+	f_sep = vim.g.fold_line_char_open_sep or chars.foldsep or "│",
+	f_open = vim.g.fold_line_char_open_start or "┌",
+	f_end = vim.g.fold_line_char_open_end or "└",
 }
 
 -- TODO: all fold signs must have same display winth
