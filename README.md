@@ -31,3 +31,7 @@ vim.g.fold_line_char_open_sep = "│"   -- default: fillchars.foldsep or "│"
 vim.g.fold_line_char_open_start = "╭" -- default: "┌"
 vim.g.fold_line_char_open_end = "╰"   -- default: "└"
 ```
+
+## Disabling
+
+Set `vim.g.fold_line_disable` (globally) or `vim.w.fold_line_disable` (for a window) or `vim.b.fold_line_disable` (for a buffer) to `true`.

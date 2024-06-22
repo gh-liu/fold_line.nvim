@@ -68,6 +68,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 	if bufnr ~= api.nvim_win_get_buf(winid) then
 		return
 	end
+	if vim.g.fold_line_disable or vim.w[winid].fold_line_disable or vim.b[bufnr].fold_line_disable then
+		return
+	end
 	if toprow == 0 and botrow == 0 then
 		return
 	end
