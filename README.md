@@ -2,6 +2,10 @@
 
 Lines, not for indentation, but for folding.
 
+## Screenshots
+
+<img width="1552" alt="Screenshot" src="https://github.com/gh-liu/fold_line.nvim/assets/46311996/cd351f17-6d8a-4190-a505-1e24f7288cd2">
+
 ## install
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
