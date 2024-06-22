@@ -45,18 +45,6 @@ local fold_signs = {
 -- TODO: all fold signs must have same display winth
 local border_shift = 0 - vim.fn.strdisplaywidth(fold_signs.f_top_close)
 
----@param bufnr integer
----@param line integer
----@return integer
-local function get_indent_of_line(bufnr, line)
-	local folded_lines = api.nvim_buf_get_lines(0, line - 1, line, false)
-	if #folded_lines == 0 then
-		return 0
-	end
-	local blank_chars = folded_lines[1]:match("^%s+") or ""
-	return #(blank_chars:gsub("\t", string.rep(" ", vim.bo[bufnr].tabstop)))
-end
-
 ---@param winid integer
 ---@param bufnr integer
 ---@param toprow integer
@@ -87,7 +75,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					local last_line = api.nvim_buf_line_count(buf)
 					for line = 1, last_line do
 						if l == vim.fn.foldlevel(line) then
-							indent_cache[l] = get_indent_of_line(bufnr, line)
+							indent_cache[l] = vim.fn.indent(line)
 						end
 					end
 				end)
