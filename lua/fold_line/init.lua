@@ -80,7 +80,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 	local last_line = api.nvim_buf_line_count(bufnr)
 	for row = toprow, botrow do
 		local line = row + 1
-		local sign = fold_signs.f_sep
 		local foldinfo = get_fold_info(winid, line)
 		if foldinfo then
 			local level = foldinfo.level
@@ -95,13 +94,12 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				end
 
 				for l = 1, level, 1 do
-					local indent = indent_cache[l] or 0
-					config.virt_text_win_col = indent + border_shift
+					local sign
 					if l == level then
-						if foldinfo_before and foldinfo.start > foldinfo_before.start or line == 1 then
+						if not sign and foldinfo_before and foldinfo.start > foldinfo_before.start or line == 1 then
 							sign = fold_signs.f_open
 						end
-						if foldinfo_after then
+						if not sign and foldinfo_after then
 							if foldinfo.start > foldinfo_after.start or line == last_line then
 								sign = fold_signs.f_end
 							end
@@ -134,7 +132,13 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						end
 					end
 
+					if not sign then
+						sign = fold_signs.f_sep
+					end
+
 					config.virt_text[1][1] = sign
+					local indent = indent_cache[l] or 0
+					config.virt_text_win_col = indent + border_shift
 					api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
 				end
 			end
