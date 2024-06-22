@@ -108,6 +108,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 								sign = fold_signs.f_end
 							end
 						end
+						if foldinfo_before and foldinfo_after then
+							-- ignore the fold of a single line
+							if
+								foldinfo_before.level == foldinfo_after.level
+								and foldinfo_after.level < foldinfo.level
+							then
+								sign = ""
+							end
+						end
 					end
 
 					local closed = foldinfo.lines > 0
