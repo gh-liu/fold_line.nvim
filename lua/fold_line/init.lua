@@ -151,7 +151,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 
 					config.virt_text[1][1] = sign
-					config.virt_text_win_col = get_indent(winid, bufnr, l) + border_shift
+					local indent = get_indent(winid, bufnr, l)
+					if l > 1 and vim.fn.indent(foldinfo.start) == 0 then -- fallback to the first column
+						indent = 0
+					end
+					config.virt_text_win_col = indent + border_shift
 					api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
 				end
 			end
