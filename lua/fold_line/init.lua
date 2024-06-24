@@ -138,9 +138,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						-- end
 					else
 						if cur_level > after_level then
-							if col > after_level then
-								sign = fold_signs.f_end
-							end
+							-- if col > after_level then
+							-- 	sign = fold_signs.f_end
+							-- end
 							if col == after_level and after_start == line_after then
 								sign = fold_signs.f_end
 							end
