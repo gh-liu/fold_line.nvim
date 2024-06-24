@@ -81,7 +81,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 				end)
 			end
-			return indent_cache[l] or (l - 1 > 0 and get_indent(win, buf, l - 1))
+			return indent_cache[l] or (l - 1 > 0 and get_indent(win, buf, l - 1)) or 0
 		end
 	end)()
 
