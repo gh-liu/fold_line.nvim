@@ -83,53 +83,65 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return indent_cache[l]
 		end
 	end)()
+
 	local last_line = api.nvim_buf_line_count(bufnr)
 	for row = toprow, botrow do
 		local line = row + 1
 		local foldinfo = get_fold_info(winid, line)
 		if foldinfo then
-			local level = foldinfo.level
-			if level > 0 then
-				local line_before = (line - 1) >= 1 and line - 1 or 1
+			local cur_level = foldinfo.level
+			if cur_level > 0 then
+				-- local line_before = (line - 1) >= 1 and line - 1 or 1
+				-- local foldinfo_before = get_fold_info(winid, line_before)
 				local line_after = (line + 1) <= last_line and (line + 1) or last_line
-				local foldinfo_before = get_fold_info(winid, line_before)
 				local foldinfo_after = get_fold_info(winid, line_after)
+				local after_level = foldinfo_after.level
+				local after_start = foldinfo_after.start
 
-				for l = 1, level, 1 do
+				local closed = foldinfo.lines > 0
+				local first_level = 1
+				local closedcol = cur_level
+				local range = cur_level
+				for col = 1, range do
 					local sign
-					if l == level then
-						if not sign and foldinfo_before and foldinfo.start > foldinfo_before.start or line == 1 then
-							sign = fold_signs.f_open
-						end
-						if not sign and foldinfo_after then
-							if foldinfo.start > foldinfo_after.start or line == last_line then
-								sign = fold_signs.f_end
-							end
-
-							if foldinfo.level == foldinfo_after.level and foldinfo.start < foldinfo_after.start then
-								sign = fold_signs.f_end
-							end
-						end
-						if foldinfo_before and foldinfo_after then
-							-- ignore the fold of a single line
-							if
-								foldinfo_before.level == foldinfo_after.level
-								and foldinfo_after.level < foldinfo.level
-							then
-								sign = ""
-							end
+					if closedcol == 1 and closed then
+						sign = fold_signs.f_top_close
+					end
+					if col == closedcol - 1 and closed then
+						sign = fold_signs.f_close
+					end
+					if line == 1 then
+						sign = fold_signs.f_open
+					end
+					if line == last_line then
+						sign = fold_signs.f_end
+					end
+					if col == closedcol and (foldinfo.start == line and first_level + col >= foldinfo.llevel) then
+						sign = fold_signs.f_open
+						if closed then
+							sign = ""
 						end
 					end
-
-					local closed = foldinfo.lines > 0
-					if closed then
-						if l == level - 1 then
-							sign = fold_signs.f_close
+					if col == closedcol then
+						-- 1. same level but not same start line
+						if cur_level == after_level and foldinfo.start < after_start then
+							sign = fold_signs.f_end
 						end
-						if l == level then
-							sign = ""
-							if l == 1 then
-								sign = fold_signs.f_top_close
+						-- 2. not same level
+						-- 2.1 the fold of after line include current fold of current line or no intersection
+						if cur_level > after_level then
+							sign = fold_signs.f_end
+						end
+						-- 2.2 TODO the fold of current line and the fold of after line have no intersection
+						-- if cur_level < foldinfo_after.level then
+						-- end
+					else
+						if cur_level > after_level then
+							if col > after_level then
+								sign = fold_signs.f_end
+							end
+							if col == after_level and after_start == line_after then
+								sign = fold_signs.f_end
 							end
 						end
 					end
@@ -138,11 +150,22 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						sign = fold_signs.f_sep
 					end
 
-					config.virt_text[1][1] = sign
-					local indent = get_indent(winid, bufnr, l)
-					if l > 1 and vim.fn.indent(foldinfo.start) == 0 then -- fallback to the first column
-						indent = 0
+					local indent
+					local indent_start = vim.fn.indent(foldinfo.start)
+					local col2 = col
+					while true do
+						indent = get_indent(winid, bufnr, col2)
+						if indent <= indent_start then
+							break
+						end
+						col2 = col2 - 1
+						if col2 == 0 then
+							indent = 0
+							break
+						end
 					end
+
+					config.virt_text[1][1] = sign
 					config.virt_text_win_col = indent + border_shift
 					api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
 				end
