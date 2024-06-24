@@ -2,6 +2,7 @@ local api = vim.api
 local ns = api.nvim_create_namespace("FoldLine")
 
 api.nvim_set_hl(0, "FoldLine", { default = true, link = "Folded" })
+api.nvim_set_hl(0, "FoldLineCurrent", { default = true, link = "CursorLineFold" })
 
 local ffi = require("ffi")
 ffi.cdef([[
@@ -65,8 +66,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 	api.nvim_win_set_hl_ns(winid, ns)
 
-	config.virt_text = { { "", "FoldLine" } }
-
 	local get_indent
 	get_indent = (function()
 		local indent_cache = {}
@@ -85,11 +84,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		end
 	end)()
 
+	local cursor_line = vim.fn.line(".")
+	local cursor_line_foldinfo = get_fold_info(winid, cursor_line)
+
 	local last_line = api.nvim_buf_line_count(bufnr)
 	for row = toprow, botrow do
 		local line = row + 1
 		local foldinfo = get_fold_info(winid, line)
 		if foldinfo then
+			config.virt_text = { { "", "FoldLine" } }
 			local cur_level = foldinfo.level
 			if cur_level > 0 then
 				-- local line_before = (line - 1) >= 1 and line - 1 or 1
@@ -163,6 +166,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						if col2 == 0 then
 							indent = 0
 							break
+						end
+					end
+
+					if col == range then
+						if
+							foldinfo.level == cursor_line_foldinfo.level
+							and foldinfo.start == cursor_line_foldinfo.start
+						then
+							config.virt_text[1][2] = "FoldLineCurrent"
 						end
 					end
 
