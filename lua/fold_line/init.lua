@@ -67,7 +67,8 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 	config.virt_text = { { "", "FoldLine" } }
 
-	local get_indent = (function()
+	local get_indent
+	get_indent = (function()
 		local indent_cache = {}
 		return function(win, buf, l)
 			if not indent_cache[l] then
@@ -80,7 +81,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 				end)
 			end
-			return indent_cache[l]
+			return indent_cache[l] or (l - 1 > 0 and get_indent(win, buf, l - 1))
 		end
 	end)()
 
