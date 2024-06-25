@@ -26,7 +26,6 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 ## Appearance
 
 Use the highlight group `FoldLine` to change the color of the line. Per default it links to `Folded`.
-And use the highlight group `FoldLineCurrent` to change the color of the line of current fold. Per default it links to `CursorLineFold`.
 
 change the char of the line:
 ```lua
