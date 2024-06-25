@@ -27,12 +27,6 @@ local get_fold_info = function(win, lnum)
 	return { start = foldinfo.start, level = foldinfo.level, llevel = foldinfo.llevel, lines = foldinfo.lines } ---@type FoldInfo
 end
 
-local config = {
-	virt_text_pos = "overlay",
-	hl_mode = "combine",
-	ephemeral = true,
-}
-
 local chars = vim.opt.fillchars:get()
 local fold_signs = {
 	f_top_close = vim.g.fold_line_char_top_close or chars.foldclose or "+",
@@ -42,8 +36,14 @@ local fold_signs = {
 	f_end = vim.g.fold_line_char_open_end or "└",
 }
 
--- TODO: all fold signs must have same display winth
+-- TODO: all fold signs must have same display width
 local border_shift = 0 - vim.fn.strdisplaywidth(fold_signs.f_top_close)
+
+local config = {
+	virt_text_pos = "overlay",
+	hl_mode = "combine",
+	ephemeral = true,
+}
 
 ---@param winid integer
 ---@param bufnr integer
@@ -67,8 +67,17 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 	config.virt_text = { { "", "FoldLine" } }
 
-	local get_indent
-	get_indent = (function()
+	local foldinfos = {}
+	setmetatable(foldinfos, {
+		__index = function(infos, line)
+			local foldinfo = get_fold_info(winid, line)
+			rawset(infos, line, foldinfo)
+			return foldinfo
+		end,
+	})
+
+	local get_indent_by_level
+	get_indent_by_level = (function()
 		local indent_cache = {}
 		return function(win, buf, l)
 			if not indent_cache[l] then
@@ -81,67 +90,95 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 				end)
 			end
-			return indent_cache[l] or (l - 1 > 0 and get_indent(win, buf, l - 1)) or 0
+			return indent_cache[l] or (l - 1 > 0 and get_indent_by_level(win, buf, l - 1)) or 0
 		end
 	end)()
 
+	local leftcol = vim.fn.winsaveview().leftcol
+
 	local last_line = api.nvim_buf_line_count(bufnr)
 	for row = toprow, botrow do
-		local line = row + 1
-		local foldinfo = get_fold_info(winid, line)
+		local cur_line = row + 1
+		local foldinfo = foldinfos[cur_line]
 		if foldinfo then
-			local cur_level = foldinfo.level
-			if cur_level > 0 then
-				-- local line_before = (line - 1) >= 1 and line - 1 or 1
-				-- local foldinfo_before = get_fold_info(winid, line_before)
-				local line_after = (line + 1) <= last_line and (line + 1) or last_line
-				local foldinfo_after = get_fold_info(winid, line_after)
-				local after_level = foldinfo_after.level
-				local after_start = foldinfo_after.start
+			local cur_line_level = foldinfo.level
+			if cur_line_level > 0 then
+				local line_before = (cur_line - 1) >= 1 and cur_line - 1 or 1
+				local foldinfo_prev = foldinfos[line_before]
+				local prev_level = foldinfo_prev.level
+				local prev_start = foldinfo_prev.start
+
+				local line_next = (cur_line + 1) <= last_line and (cur_line + 1) or last_line
+				local foldinfo_next = foldinfos[line_next]
+				local next_level = foldinfo_next.level
+				local next_start = foldinfo_next.start
 
 				local closed = foldinfo.lines > 0
 				local first_level = 1
-				local closedcol = cur_level
-				local range = cur_level
-				for col = 1, range do
+				for level = 1, cur_line_level do
+					-- current: ## |  # | # | #  | ##
+					-- next:    #  | #  | # |  # |  #
+
 					local sign
-					if closedcol == 1 and closed then
-						sign = fold_signs.f_top_close
-					end
-					if col == closedcol - 1 and closed then
+					-- close sign
+					if (cur_line_level - 1) == level and closed then
 						sign = fold_signs.f_close
 					end
-					if line == 1 then
-						sign = fold_signs.f_open
+					if cur_line_level == 1 and closed then
+						sign = fold_signs.f_top_close
 					end
-					if line == last_line then
-						sign = fold_signs.f_end
-					end
-					if col == closedcol and (foldinfo.start == line and first_level + col >= foldinfo.llevel) then
-						sign = fold_signs.f_open
+
+					-- open sign
+					if not sign then
+						if cur_line == 1 then
+							sign = fold_signs.f_open
+						end
+						if foldinfo.start == cur_line then
+							if level == cur_line_level then
+								sign = fold_signs.f_open
+							end
+
+							if (prev_level < cur_line_level) and (prev_level < level and level <= cur_line_level) then
+								sign = fold_signs.f_open
+							end
+
+							-- if (before_level == cur_line_level) and true then
+							-- 	sign = fold_signs.f_open
+							-- end
+						end
 						if closed then
 							sign = ""
 						end
 					end
-					if col == closedcol then
-						-- 1. same level but not same start line
-						if cur_level == after_level and foldinfo.start < after_start then
+
+					-- end sign
+					if not sign then
+						if cur_line == last_line then
 							sign = fold_signs.f_end
 						end
-						-- 2. not same level
-						-- 2.1 the fold of after line include current fold of current line or no intersection
-						if cur_level > after_level then
-							sign = fold_signs.f_end
-						end
-						-- 2.2 TODO the fold of current line and the fold of after line have no intersection
-						-- if cur_level < foldinfo_after.level then
-						-- end
-					else
-						if cur_level > after_level then
-							-- if col > after_level then
-							-- 	sign = fold_signs.f_end
+						if level == cur_line_level then
+							-- 1. same level but not same start line
+							if cur_line_level == next_level and foldinfo.start < next_start then
+								sign = fold_signs.f_end
+							end
+							-- 2. not same level
+							-- 2.1 the fold of after line include current fold of current line or no intersection
+							-- 2.2 TODO the fold of current line and the fold of after line have no intersection
+							-- if cur_level < foldinfo_after.level then
 							-- end
-							if col == after_level and after_start == line_after then
+							-- else
+							-- 	if cur_line_level > after_level then
+							-- 		-- if col > after_level then
+							-- 		-- 	sign = fold_signs.f_end
+							-- 		-- end
+							-- 		if level == after_level and after_start == line_after then
+							-- 			sign = fold_signs.f_end
+							-- 		end
+							-- 	end
+						end
+
+						if cur_line_level > next_level then
+							if next_level < level and level <= cur_line_level then
 								sign = fold_signs.f_end
 							end
 						end
@@ -152,21 +189,25 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					end
 
 					local indent
+					-- indent of start line
 					local indent_start = vim.fn.indent(foldinfo.start)
-					local col2 = col
+					local level_copy = level
 					while true do
-						indent = get_indent(winid, bufnr, col2)
+						-- indent of a level
+						indent = get_indent_by_level(winid, bufnr, level_copy)
+						-- if the indent of this level less than or equl to the indent or start line, use this indent
 						if indent <= indent_start then
 							break
+						else
+							-- fallback to prev level
+							level_copy = level_copy - 1
 						end
-						col2 = col2 - 1
-						if col2 == 0 then
+						-- can not find a indent, so use 0 indent
+						if level_copy == 0 then
 							indent = 0
 							break
 						end
 					end
-
-					local leftcol = vim.fn.winsaveview().leftcol
 					indent = indent - leftcol
 
 					if indent >= 0 then
