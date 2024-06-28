@@ -166,9 +166,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						end
 					end
 
-					config.virt_text[1][1] = sign
-					config.virt_text_win_col = indent + border_shift
-					api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+					local leftcol = vim.fn.winsaveview().leftcol
+					indent = indent - leftcol
+
+					if indent >= 0 then
+						config.virt_text[1][1] = sign
+						config.virt_text_win_col = indent + border_shift
+						api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+					end
 				end
 			end
 		end
