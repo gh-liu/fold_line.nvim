@@ -86,7 +86,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 	end)()
 
 	local last_line = api.nvim_buf_line_count(bufnr)
-	for row = toprow, botrow do
+	local row = toprow
+	while row <= botrow do
+		local skip_rows
 		local line = row + 1
 		local foldinfo = get_fold_info(winid, line)
 		if foldinfo then
@@ -107,9 +109,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					local sign
 					if closedcol == 1 and closed then
 						sign = fold_signs.f_top_close
+						skip_rows = foldinfo.lines
 					end
 					if col == closedcol - 1 and closed then
 						sign = fold_signs.f_close
+						skip_rows = foldinfo.lines
 					end
 					if line == 1 then
 						sign = fold_signs.f_open
@@ -177,6 +181,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				end
 			end
 		end
+		row = row + (skip_rows or 1)
 	end
 end
 
