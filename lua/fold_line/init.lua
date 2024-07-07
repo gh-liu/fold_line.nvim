@@ -49,7 +49,7 @@ local config = {
 	virt_text_pos = "overlay",
 	hl_mode = "combine",
 	ephemeral = true,
-	virt_text = { { "", "" } },
+	virt_text = { { "", "FoldLine" } },
 }
 
 ---@param winid integer
@@ -227,35 +227,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		return sign
 	end
 
-	local cursor_line = vim.fn.line(".")
-	local cursor_line_finfo = foldinfos[cursor_line]
-	---@param i_level integer
-	---@param cur_line_finfo FoldInfo
-	---@return boolean
-	local cursor_fold = function(i_level, cur_line_finfo)
-		local cur_line_flevel = cur_line_finfo.level
-		local cur_line_fstart = cur_line_finfo.start
-		local cursor_line_flevel = cursor_line_finfo.level
-		local cursor_line_fstart = cursor_line_finfo.start
-		if
-			i_level == cur_line_flevel
-			and cur_line_flevel == cursor_line_flevel
-			and cur_line_fstart == cursor_line_fstart
-		then
-			return true
-		end
-
-		if
-			cursor_line_flevel < cur_line_flevel
-			and cursor_line_fstart < cur_line_fstart
-			and i_level == cursor_line_flevel
-		then
-			return true
-		end
-
-		return false
-	end
-
 	local row = toprow
 	while row <= botrow do
 		local skip_rows
@@ -288,12 +259,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						sign = sign or open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
 						sign = sign or open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
 						sign = sign or fold_signs.f_sep
-
-						if cursor_fold(i_level, cur_line_finfo) then
-							config.virt_text[1][2] = "Tag"
-						else
-							config.virt_text[1][2] = "FoldLine"
-						end
 
 						config.virt_text[1][1] = sign
 						config.virt_text_win_col = indent + border_shift
