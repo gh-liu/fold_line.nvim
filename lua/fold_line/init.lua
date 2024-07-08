@@ -260,9 +260,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						sign = sign or open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
 						sign = sign or fold_signs.f_sep
 
-						config.virt_text[1][1] = sign
-						config.virt_text_win_col = indent + border_shift
-						api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+						if sign ~= "" then
+							config.virt_text[1][1] = sign
+							config.virt_text_win_col = indent + border_shift
+							api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+						end
 					end
 				end
 			end
