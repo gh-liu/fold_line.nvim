@@ -200,35 +200,22 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local next_line_fstart = next_line_finfo.start
 
 		local sign
-		if i_level == cur_line_flevel then
-			-- 1. same level but not same start line
-			if cur_line_flevel == next_line_flevel and cur_line_fstart < next_line_fstart then
-				sign = fold_signs.f_end
-			end
-			-- 2. not same level
-			-- 2.1 the fold of after line include current fold of current line or no intersection
-			-- 2.2 TODO the fold of current line and the fold of after line have no intersection
-			-- if cur_line_flevel < next_line_flevel then
-			-- end
-			-- else
-			-- 	if cur_line_flevel > next_line_flevel then
-			-- 		-- if col > after_level then
-			-- 		-- 	sign = fold_signs.f_end
-			-- 		-- end
-			-- 		if i_level == next_line_flevel and next_line_fstart == cur_line + 1 then
-			-- 			sign = fold_signs.f_end
-			-- 		end
-			-- 	end
-		end
-
 		if next_line_flevel < cur_line_flevel then
 			if next_line_flevel < i_level and i_level <= cur_line_flevel then
 				sign = fold_signs.f_end
 			end
-			if (next_line_fstart == cur_line + 1) and (i_level == next_line_flevel) then
+		end
+
+		if next_line_flevel == cur_line_flevel then
+			-- for now, only can determine the last col
+			if i_level == cur_line_flevel and cur_line_fstart < next_line_fstart then
 				sign = fold_signs.f_end
 			end
 		end
+
+		-- if next_line_flevel > cur_line_flevel then
+		-- end
+
 		return sign
 	end
 
