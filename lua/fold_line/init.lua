@@ -240,7 +240,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					local is_closed = cur_line_finfo.lines > 0
 
 					for i_level = 1, cur_line_flevel do
-						local indent = indent_fallback(i_level, cur_line_fstartindent) - leftcol
+						local indent = indent_fallback(i_level, cur_line_fstartindent)
+						if is_closed and (i_level == cur_line_flevel - 1) then
+							-- check if indent of `cur_line_flevel` is fallback to the indent of close col which is `cur_line_flevel - 1`
+							if indent == indent_fallback(i_level + 1, cur_line_fstartindent) then
+								indent = indent_fallback(i_level - 1, cur_line_fstartindent)
+							end
+						end
+						indent = indent - leftcol
+
 						if indent >= 0 then
 							local sign = is_closed and close_sign(i_level, cur_line_finfo)
 							if sign then
