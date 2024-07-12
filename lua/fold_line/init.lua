@@ -183,26 +183,36 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 			local cur_line_fstart = cur_line_finfo.start
 			local cur_line_flevel = cur_line_finfo.level
+			-- local cur_line_fllevel = cur_line_finfo.llevel
 
 			local next_line_flevel = next_line_finfo.level
+			local next_line_fllevel = next_line_finfo.llevel
 			local next_line_fstart = next_line_finfo.start
 
 			local sign
+
 			if next_line_flevel < cur_line_flevel then
-				if next_line_flevel < i_level and i_level <= cur_line_flevel then
+				local start = next_line_flevel + 1
+				if next_line_fstart == cur_line + 1 then -- next line is start line of a fold
+					start = next_line_fllevel
+				end
+				if start <= i_level and i_level <= cur_line_flevel then
 					sign = fold_signs.f_end
 				end
 			end
 
-			if next_line_flevel == cur_line_flevel then
-				-- for now, only can determine the last col
-				if i_level == cur_line_flevel and cur_line_fstart < next_line_fstart then
+			-- same level but not same fold
+			if next_line_flevel == cur_line_flevel and (cur_line_fstart < next_line_fstart) then
+				if next_line_fllevel <= i_level and i_level <= next_line_flevel then
 					sign = fold_signs.f_end
 				end
 			end
 
-			-- if next_line_flevel > cur_line_flevel then
-			-- end
+			if next_line_flevel > cur_line_flevel then
+				if next_line_fllevel <= i_level and i_level <= cur_line_flevel then
+					sign = fold_signs.f_end
+				end
+			end
 
 			return sign
 		end
