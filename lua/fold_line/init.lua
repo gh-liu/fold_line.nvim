@@ -156,26 +156,12 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			local sign
 			if cur_line == cur_line_fstart then
 				local cur_line_flevel = cur_line_finfo.level
-
-				local prev_line_flevel = prev_line_finfo.level
-				-- local prev_line_fstart = prev_line_finfo.start
+				local cur_line_fllevel = cur_line_finfo.llevel
 
 				local is_closed = cur_line_finfo.lines > 0
 
-				if i_level == cur_line_flevel then
+				if cur_line_fllevel <= i_level and i_level <= cur_line_flevel then
 					sign = fold_signs.f_open
-				else
-					if prev_line_flevel < i_level and i_level < cur_line_flevel then
-						sign = fold_signs.f_open
-					end
-
-					-- if (prev_line_flevel == cur_line_flevel) and true then
-					-- 	sign = fold_signs.f_open
-					-- end
-
-					-- if (prev_line_flevel > cur_line_flevel) and true then
-					-- 	sign = fold_signs.f_open
-					-- end
 				end
 
 				sign = (is_closed and sign) and "" or sign
