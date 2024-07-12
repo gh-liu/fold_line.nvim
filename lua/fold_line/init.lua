@@ -169,6 +169,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return sign
 		end
 
+		local fold_end_infos = {}
+		setmetatable(fold_end_infos, {
+			__index = function(t, k)
+				rawset(t, k, {})
+				return t[k]
+			end,
+		})
+
 		--- check if in i_level is a open_end_sign
 		---@param i_level integer
 		---@param cur_line integer
@@ -176,12 +184,13 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		---@param next_line_finfo FoldInfo
 		---@return string|nil
 		local open_end_sign = function(i_level, cur_line, cur_line_finfo, next_line_finfo)
+			local cur_line_fstart = cur_line_finfo.start
 			-- if the last line in a fold, it's must the end of the folds
 			if cur_line == last_line then
+				fold_end_infos[cur_line_fstart][i_level] = cur_line
 				return fold_signs.f_end
 			end
 
-			local cur_line_fstart = cur_line_finfo.start
 			local cur_line_flevel = cur_line_finfo.level
 			-- local cur_line_fllevel = cur_line_finfo.llevel
 
@@ -212,6 +221,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				if next_line_fllevel <= i_level and i_level <= cur_line_flevel then
 					sign = fold_signs.f_end
 				end
+			end
+			if sign then
+				fold_end_infos[cur_line_fstart][i_level] = cur_line
 			end
 
 			return sign
