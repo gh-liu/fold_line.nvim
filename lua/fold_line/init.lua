@@ -108,6 +108,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local indent_fallback = function(level, start_indent)
 			local indent = 0
 			while true do
+				if level == 0 then
+					indent = 0
+					break
+				end
 				indent = level_indents[level]
 				if indent and (indent <= start_indent) then
 					-- if the indent of this level less than or equl to the indent of start line, use it
@@ -115,10 +119,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				else
 					-- fallback to prev level
 					level = level - 1
-				end
-				if level == 0 then
-					indent = 0
-					break
 				end
 			end
 			return indent
