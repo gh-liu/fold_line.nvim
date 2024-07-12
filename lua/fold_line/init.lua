@@ -1,7 +1,10 @@
 local api = vim.api
 local ns = api.nvim_create_namespace("FoldLine")
 
+local priority = vim.g.fold_line_char_priority or 100
+
 api.nvim_set_hl(0, "FoldLine", { default = true, link = "Folded" })
+api.nvim_set_hl(0, "FoldLineCurrent", { default = true, link = "CursorLineFold" })
 
 local ffi = require("ffi")
 ffi.cdef([[
@@ -49,7 +52,7 @@ local config = {
 	virt_text_pos = "overlay",
 	hl_mode = "combine",
 	ephemeral = true,
-	virt_text = { { "", "FoldLine" } },
+	virt_text = { { "", "" } },
 }
 
 ---@param winid integer
@@ -229,6 +232,38 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return sign
 		end
 
+		local cursor_line = vim.fn.line(".")
+		local cursor_line_finfo = foldinfos[cursor_line]
+		---@param i_level integer
+		---@param cur_line_finfo FoldInfo
+		---@return boolean
+		local cursor_fold = function(i_level, cur_line_finfo)
+			local cur_line_flevel = cur_line_finfo.level
+			local cur_line_fstart = cur_line_finfo.start
+			local cursor_line_flevel = cursor_line_finfo.level
+			local cursor_line_fstart = cursor_line_finfo.start
+
+			if
+				i_level == cur_line_flevel
+				and cur_line_flevel == cursor_line_flevel
+				and cur_line_fstart == cursor_line_fstart
+			then
+				return true
+			end
+
+			if not fold_end_infos[cursor_line_fstart][i_level] then
+				if
+					i_level == cursor_line_flevel
+					and cursor_line_flevel < cur_line_flevel
+					and cursor_line_fstart < cur_line_fstart
+				then
+					return true
+				end
+			end
+
+			return false
+		end
+
 		local row = toprow
 		while row <= botrow do
 			local skip_rows
@@ -271,6 +306,13 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							sign = sign or fold_signs.f_sep
 
 							if sign ~= "" then
+								if cursor_fold(i_level, cur_line_finfo) then
+									config.virt_text[1][2] = "FoldLineCurrent"
+									config.priority = priority
+								else
+									config.virt_text[1][2] = "FoldLine"
+									config.priority = priority
+								end
 								config.virt_text[1][1] = sign
 								config.virt_text_win_col = indent + border_shift
 								api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
