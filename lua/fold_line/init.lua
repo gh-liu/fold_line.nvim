@@ -315,7 +315,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							if sign ~= "" then
 								if cursor_fold(i_level, cur_line_finfo) then
 									config.virt_text[1][2] = "FoldLineCurrent"
-									config.priority = priority
+									config.priority = priority + 1
 								else
 									config.virt_text[1][2] = "FoldLine"
 									config.priority = priority
