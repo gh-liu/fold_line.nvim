@@ -187,6 +187,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			end,
 		})
 
+		local save_fold_end_line = function(cur_line, i_level, fold_info)
+			while i_level < fold_info.level do
+				fold_info = foldinfos[fold_info.start - 1]
+			end
+			if i_level == fold_info.level then
+				fold_end_infos[fold_info.start][i_level] = cur_line
+			end
+		end
+
 		--- check if in i_level is a open_end_sign
 		---@param i_level integer
 		---@param cur_line integer
@@ -197,7 +206,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			local cur_line_fstart = cur_line_finfo.start
 			-- if the last line in a fold, it's must the end of the folds
 			if cur_line == last_line then
-				fold_end_infos[cur_line_fstart][i_level] = cur_line
+				save_fold_end_line(cur_line, i_level, cur_line_finfo)
 				return fold_signs.f_end
 			end
 
@@ -233,7 +242,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				end
 			end
 			if sign then
-				fold_end_infos[cur_line_fstart][i_level] = cur_line
+				save_fold_end_line(cur_line, i_level, cur_line_finfo)
 			end
 
 			return sign
