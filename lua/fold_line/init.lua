@@ -260,7 +260,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			if i_level == cursor_line_flevel then
 				local fold_end_line = fold_end_infos[cursor_line_fstart][i_level]
 				if not fold_end_line then
-					if cursor_line_flevel < cur_line_flevel and cursor_line_fstart < cur_line_fstart then
+					if cursor_line_flevel < cur_line_flevel and cursor_line_fstart <= cur_line_fstart then
 						return true
 					end
 				else
