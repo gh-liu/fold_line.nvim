@@ -250,14 +250,12 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 		local cursor_line = vim.fn.line(".")
 		local cursor_line_finfo = foldinfos[cursor_line]
+		local is_cursor_fold_closed = cursor_line_finfo.lines > 0
+		-- TODO: maybe we could fake the cursor line to make outer fold line highlighted when the cursor fold is closed
 		---@param i_level integer
 		---@param cur_line_finfo FoldInfo
 		---@return boolean
 		local cursor_fold = function(i_level, cur_line_finfo)
-			if cursor_line_finfo.lines > 0 then
-				return false
-			end
-
 			local cur_line_flevel = cur_line_finfo.level
 			local cur_line_fstart = cur_line_finfo.start
 			local cursor_line_flevel = cursor_line_finfo.level
@@ -326,7 +324,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							sign = sign or fold_signs.f_sep
 
 							if sign ~= "" then
-								if cursor_fold(i_level, cur_line_finfo) then
+								if not is_cursor_fold_closed and cursor_fold(i_level, cur_line_finfo) then
 									config.virt_text[1][2] = "FoldLineCurrent"
 									config.priority = priority + 1
 								else
