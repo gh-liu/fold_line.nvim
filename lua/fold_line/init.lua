@@ -114,7 +114,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return flevel_indents[level] or 0
 		end
 
-		local cur_line = toprow + 1
+		-- local cur_line = toprow + 1
 		local foldinfo = foldinfos[toprow + 1]
 		while foldinfo.level > 0 do
 			save_fold_indent(foldinfo)
@@ -282,7 +282,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				local cur_line_flevel = cur_line_finfo.level
 				if cur_line_flevel > 0 then
 					-- local cur_line_fstart = cur_line_finfo.start
-					local cur_line_fstartindent = cur_line_finfo.start_indent
+					-- local cur_line_fstartindent = cur_line_finfo.start_indent
 
 					local prev_line = (cur_line - 1) >= 1 and cur_line - 1 or 1
 					local prev_line_finfo = foldinfos[prev_line]
