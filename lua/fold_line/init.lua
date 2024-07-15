@@ -77,24 +77,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local leftcol = vim.fn.winsaveview().leftcol
 		local last_line = api.nvim_buf_line_count(bufnr)
 
-		local level_indents = {} ---@type table<integer,integer>
-		setmetatable(level_indents, {
-			__index = function(indents, level)
-				local indent
-				for line = 1, last_line do
-					if level == vim.fn.foldlevel(line) then
-						indent = vim.fn.indent(line)
-						break
-					end
-				end
-
-				if indent then
-					rawset(indents, level, indent)
-				end
-				return indent
-			end,
-		})
-
 		local foldinfos = {} ---@type FoldInfo[]
 		setmetatable(foldinfos, {
 			__index = function(infos, line)
@@ -104,34 +86,39 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			end,
 		})
 
+		local flevel_indents = {} ---@type table<integer,integer>
+
+		local function save_fold_indent(cur_line_finfo)
+			local cur_line_flevel = cur_line_finfo.level
+			local cur_line_fstartindent = cur_line_finfo.start_indent
+			flevel_indents[cur_line_flevel] = cur_line_fstartindent
+
+			local cur_line_fllevel = cur_line_finfo.llevel
+			if cur_line_fllevel < cur_line_flevel then
+				local unit = cur_line_fstartindent / (cur_line_flevel + 1)
+				for i_level = cur_line_fllevel, cur_line_flevel - 1 do
+					flevel_indents[i_level] = i_level * unit
+				end
+			end
+		end
+
 		--- get indent of a level with fallback
 		---@param level integer
 		---@param cur_line_finfo FoldInfo
+		---@param cur_line integer
 		---@return integer
-		local indent_fallback = function(level, cur_line_finfo)
-			local start_indent = cur_line_finfo.start_indent
-
-			-- if the level is equal current fold level, just use the indent of the fold start line
-			-- if level == cur_line_finfo.level then
-			-- 	return start_indent
-			-- end
-
-			local indent = 0
-			while true do
-				if level == 0 then
-					indent = 0
-					break
-				end
-				indent = level_indents[level]
-				if indent and (indent <= start_indent) then
-					-- if the indent of this level less than or equl to the indent of start line, use it
-					break
-				else
-					-- fallback to prev level
-					level = level - 1
-				end
+		local flevel_indent = function(level, cur_line_finfo, cur_line)
+			if cur_line == cur_line_finfo.start then
+				save_fold_indent(cur_line_finfo)
 			end
-			return indent
+			return flevel_indents[level] or 0
+		end
+
+		local cur_line = toprow + 1
+		local foldinfo = foldinfos[toprow + 1]
+		while foldinfo.level > 0 do
+			save_fold_indent(foldinfo)
+			foldinfo = foldinfos[foldinfo.start - 1]
 		end
 
 		--- check if in i_level is a close_sign
@@ -309,13 +296,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					local is_closed = cur_line_finfo.lines > 0
 
 					for i_level = 1, cur_line_flevel do
-						local indent = indent_fallback(i_level, cur_line_finfo)
-						if is_closed and (i_level == cur_line_flevel - 1) then
-							-- check if indent of `cur_line_flevel` is fallback to the indent of close col which is `cur_line_flevel - 1`
-							if indent == indent_fallback(i_level + 1, cur_line_finfo) then
-								indent = indent_fallback(i_level - 1, cur_line_finfo)
-							end
-						end
+						local indent = flevel_indent(i_level, cur_line_finfo, cur_line)
 						indent = indent - leftcol
 
 						if indent >= 0 then
