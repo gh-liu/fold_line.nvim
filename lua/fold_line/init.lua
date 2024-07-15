@@ -112,9 +112,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			local start_indent = cur_line_finfo.start_indent
 
 			-- if the level is equal current fold level, just use the indent of the fold start line
-			if level == cur_line_finfo.level then
-				return start_indent
-			end
+			-- if level == cur_line_finfo.level then
+			-- 	return start_indent
+			-- end
 
 			local indent = 0
 			while true do
