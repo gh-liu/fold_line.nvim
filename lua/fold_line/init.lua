@@ -254,6 +254,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		---@param cur_line_finfo FoldInfo
 		---@return boolean
 		local cursor_fold = function(i_level, cur_line_finfo)
+			if cursor_line_finfo.lines > 0 then
+				return false
+			end
+
 			local cur_line_flevel = cur_line_finfo.level
 			local cur_line_fstart = cur_line_finfo.start
 			local cursor_line_flevel = cursor_line_finfo.level
