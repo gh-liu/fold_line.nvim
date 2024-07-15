@@ -254,8 +254,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		-- TODO: maybe we could fake the cursor line to make outer fold line highlighted when the cursor fold is closed
 		---@param i_level integer
 		---@param cur_line_finfo FoldInfo
+		---@param cur_line integer
 		---@return boolean
-		local cursor_fold = function(i_level, cur_line_finfo)
+		local cursor_fold = function(i_level, cur_line_finfo, cur_line)
 			local cur_line_flevel = cur_line_finfo.level
 			local cur_line_fstart = cur_line_finfo.start
 			local cursor_line_flevel = cursor_line_finfo.level
@@ -269,13 +270,16 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				return true
 			end
 
-			if not fold_end_infos[cursor_line_fstart][i_level] then
-				if
-					i_level == cursor_line_flevel
-					and cursor_line_flevel < cur_line_flevel
-					and cursor_line_fstart < cur_line_fstart
-				then
-					return true
+			if i_level == cursor_line_flevel then
+				local fold_end_line = fold_end_infos[cursor_line_fstart][i_level]
+				if not fold_end_line then
+					if cursor_line_flevel < cur_line_flevel and cursor_line_fstart < cur_line_fstart then
+						return true
+					end
+				else
+					if fold_end_line == cur_line then
+						return true
+					end
 				end
 			end
 
@@ -324,7 +328,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							sign = sign or fold_signs.f_sep
 
 							if sign ~= "" then
-								if not is_cursor_fold_closed and cursor_fold(i_level, cur_line_finfo) then
+								if not is_cursor_fold_closed and cursor_fold(i_level, cur_line_finfo, cur_line) then
 									config.virt_text[1][2] = "FoldLineCurrent"
 									config.priority = priority + 1
 								else
