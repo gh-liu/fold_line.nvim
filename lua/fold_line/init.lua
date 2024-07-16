@@ -309,16 +309,24 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							sign = sign or fold_signs.f_sep
 
 							if sign ~= "" then
+								local is_cursor_fold = false
 								if not is_cursor_fold_closed and cursor_fold(i_level, cur_line_finfo, cur_line) then
 									config.virt_text[1][2] = "FoldLineCurrent"
 									config.priority = priority + 1
+									is_cursor_fold = true
 								else
 									config.virt_text[1][2] = "FoldLine"
 									config.priority = priority
 								end
-								config.virt_text[1][1] = sign
-								config.virt_text_win_col = indent + border_shift
-								api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+
+								if
+									not vim.g.fold_line_current_fold_only
+									or (vim.g.fold_line_current_fold_only and is_cursor_fold)
+								then
+									config.virt_text[1][1] = sign
+									config.virt_text_win_col = indent + border_shift
+									api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+								end
 							end
 						end
 					end
