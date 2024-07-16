@@ -41,6 +41,10 @@ vim.g.fold_line_char_open_start = "╭" -- default: "┌"
 vim.g.fold_line_char_open_end = "╰"   -- default: "└"
 ```
 
+## Current fold only
+
+To show lines for the current fold only, set `vim.g.fold_line_current_fold_only` to `true`.
+
 ## Disabling
 
 Set `vim.g.fold_line_disable` (globally) or `vim.w.fold_line_disable` (for a window) or `vim.b.fold_line_disable` (for a buffer) to `true`.
