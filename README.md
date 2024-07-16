@@ -1,6 +1,6 @@
 # fold_line.nvim
 
-Lines, not for indentation, but for folding.
+This Neovim plugin uses lines to indicate code folding areas and highlights the current fold.
 
 ## Screenshots
 
@@ -10,7 +10,7 @@ The line of the current fold is yellow. You can change the color by setting the 
 <img width="960" alt="hi_current" src="https://github.com/user-attachments/assets/0fd67967-5dac-439d-9230-cc6538064e9e">
 
 
-## Install
+## Installation
 
 Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
