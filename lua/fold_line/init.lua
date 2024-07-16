@@ -97,7 +97,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			if cur_line_fllevel < cur_line_flevel then
 				local unit = cur_line_fstartindent / (cur_line_flevel + 1)
 				for i_level = cur_line_fllevel, cur_line_flevel - 1 do
-					flevel_indents[i_level] = i_level * unit
+					flevel_indents[i_level] = math.ceil(i_level * unit)
 				end
 			end
 		end
