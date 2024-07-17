@@ -178,6 +178,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			while i_level < fold_info.level do
 				fold_info = foldinfos[fold_info.start - 1]
 			end
+			-- if end line already exist, just return
+			if fold_end_infos[fold_info.start][i_level] then
+				return
+			end
 			if i_level == fold_info.level then
 				fold_end_infos[fold_info.start][i_level] = cur_line
 			end
