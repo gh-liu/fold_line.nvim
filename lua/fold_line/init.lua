@@ -264,7 +264,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						return true
 					end
 				else
-					if fold_end_line == cur_line and cur_line_fstart == cursor_line_fstart then
+					if fold_end_line == cur_line then
 						return true
 					end
 				end
