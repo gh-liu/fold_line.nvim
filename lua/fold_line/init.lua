@@ -299,12 +299,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 					local is_closed = cur_line_finfo.lines > 0
 
-					local max_level_indent = flevel_indent(cur_line_flevel, cur_line_finfo, cur_line)
 					for i_level = 1, cur_line_flevel do
 						local indent = flevel_indent(i_level, cur_line_finfo, cur_line)
 						indent = indent - leftcol
 
-						if 0 <= indent and indent <= max_level_indent then
+						if indent >= 0 then
 							local sign = is_closed and close_sign(i_level, cur_line_finfo)
 							if sign then
 								fold_end_infos[cur_line_finfo.start][i_level] = cur_line + cur_line_finfo.lines
