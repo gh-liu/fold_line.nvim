@@ -97,4 +97,30 @@ T["same fold end line"] = function(buf_id, lines)
 
 	expect.reference_screenshot(child.get_screenshot())
 end
+
+T["current fold only"] = function(buf_id, lines)
+	child.lua("vim.g.fold_line_current_fold_only = true")
+
+	set_lines({
+		" fold1",
+		"  fold2",
+		"   fold2",
+		"    fold2",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+	})
+	make_fold(1, 10)
+	make_fold(2, 10)
+	make_fold(3, 10)
+	make_fold(4, 10)
+	make_fold(5, 10)
+
+	child.cmd("5")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
 return T
