@@ -241,12 +241,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 		local cursor_line = vim.fn.line(".")
 		local cursor_line_finfo = foldinfos[cursor_line]
+		local cursor_line_flevel = cursor_line_finfo.level
+		local cursor_line_fstart = cursor_line_finfo.start
 		local is_cursor_fold_closed = cursor_line_finfo.lines > 0
 
 		local cursor_fold_top
 		if is_cursor_fold_closed then
 			local fold_info = cursor_line_finfo
-			while fold_info.level >= cursor_line_finfo.level do
+			while fold_info.level >= cursor_line_flevel do
 				fold_info = foldinfos[fold_info.start - 1]
 			end
 			cursor_fold_top = fold_info.start
@@ -256,15 +258,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		---@param cur_line_finfo FoldInfo
 		---@param cur_line integer
 		local cursor_fold_closed = function(i_level, cur_line_finfo, cur_line)
-			if i_level == cursor_line_finfo.level - 1 then
+			if i_level == cursor_line_flevel - 1 then
 				local cur_line_fstart = cur_line_finfo.start
+				local cur_line_flevel = cur_line_finfo.level
+
 				if cursor_fold_top <= cur_line_fstart then
 					local fold_end_line = fold_end_infos[cursor_fold_top][i_level]
 					if not fold_end_line then
-						if
-							(cur_line_fstart <= cursor_line_finfo.start)
-							or (cur_line_finfo.level >= cursor_line_finfo.level)
-						then
+						if (cur_line_fstart <= cursor_line_fstart) or (cur_line_flevel >= cursor_line_flevel) then
 							return true
 						end
 					else
@@ -283,8 +284,6 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local cursor_fold = function(i_level, cur_line_finfo, cur_line)
 			local cur_line_flevel = cur_line_finfo.level
 			local cur_line_fstart = cur_line_finfo.start
-			local cursor_line_flevel = cursor_line_finfo.level
-			local cursor_line_fstart = cursor_line_finfo.start
 
 			if
 				i_level == cur_line_flevel
