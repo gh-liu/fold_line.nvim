@@ -124,6 +124,32 @@ T["current fold only"] = function(buf_id, lines)
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+T["fallback current closed fold"] = function(buf_id, lines)
+	child.lua("vim.g.fold_line_current_fold_only = true")
+
+	set_lines({
+		" fold1",
+		"  fold2",
+		"   fold3",
+		"    fold4.1",
+		"    fold4.1",
+		"    fold4.2",
+		"    fold4.2",
+		"   fold3",
+		"  fold2",
+		" fold1",
+	})
+	make_fold(1, 10)
+	make_fold(2, 9)
+	make_fold(3, 8)
+	make_fold(4, 5)
+	make_fold(6, 7)
+
+	child.cmd("4 | foldclose")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 T["closed fold"] = function(buf_id, lines)
 	set_lines({
 		" fold1",
