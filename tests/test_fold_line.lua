@@ -175,4 +175,55 @@ T["closed fold"] = function(buf_id, lines)
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+T["larger level on fold4.2 start line"] = function(buf_id, lines)
+	set_lines({
+		" fold1",
+		"  fold2",
+		"   fold3",
+		"    fold4.1",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+		"    fold4.2",
+		"    fold4.2",
+		"   fold3",
+		"  fold2",
+		" fold1",
+	})
+	make_fold(1, 12) -- level 1
+	make_fold(2, 11) -- level 2
+	make_fold(3, 10) -- level 3
+	make_fold(4, 7) -- level4
+	make_fold(5, 7) -- level5
+	make_fold(8, 9) -- level4
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+T["larger level below fold4.1 end line"] = function(buf_id, lines)
+	set_lines({
+		" fold1",
+		"  fold2",
+		"   fold3",
+		"    fold4.1",
+		"    fold4.1",
+		"     fold5",
+		"     fold5",
+		"     fold5",
+		"    fold4.2",
+		"    fold4.2",
+		"   fold3",
+		"  fold2",
+		" fold1",
+	})
+	make_fold(1, 13) -- level 1
+	make_fold(2, 12) -- level 2
+	make_fold(3, 11) -- level 3
+	make_fold(4, 5) -- level4
+	make_fold(6, 10) -- level4
+	make_fold(6, 8) -- level5
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T
