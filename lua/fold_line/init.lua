@@ -43,6 +43,8 @@ local fold_signs = {
 	f_sep = vim.g.fold_line_char_open_sep or chars.foldsep or "│",
 	f_open = vim.g.fold_line_char_open_start or "┌",
 	f_end = vim.g.fold_line_char_open_end or "└",
+	f_open_start_close = vim.g.fold_line_char_open_start_close or "╒",
+	f_open_end_close = vim.g.fold_line_char_open_end_close or "╘",
 }
 
 -- TODO: all fold signs must have same display width
@@ -340,6 +342,19 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							if sign then
 								fold_end_infos[cur_line_finfo.start][i_level] = cur_line + cur_line_finfo.lines
 								skip_rows = cur_line_finfo.lines
+
+								if sign == fold_signs.f_close then
+									local above_line_finfo = foldinfos[cur_line_finfo.start - 1]
+									if above_line_finfo.level < cur_line_finfo.level - 1 then
+										sign = fold_signs.f_open_start_close
+									end
+
+									local below_line = cur_line_finfo.start + cur_line_finfo.lines
+									local below_line_finfo = foldinfos[below_line]
+									if below_line_finfo.level < cur_line_finfo.level - 1 then
+										sign = fold_signs.f_open_end_close
+									end
+								end
 							end
 							sign = sign or open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
 							sign = sign or open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)

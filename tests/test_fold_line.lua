@@ -248,4 +248,48 @@ T["use indent of fold start line"] = function(buf_id, lines)
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+T["start line of a fold is a closed sub fold"] = function(buf_id, lines)
+	set_lines({
+		" fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"  fold1",
+		" fold1",
+	})
+	make_fold(1, 10)
+	make_fold(2, 9)
+	make_fold(2, 8)
+
+	child.cmd("2 | foldclose")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
+T["end line of a fold is a closed sub fold"] = function(buf_id, lines)
+	set_lines({
+		" fold1",
+		"  fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		"   fold1",
+		" fold1",
+	})
+	make_fold(1, 10)
+	make_fold(2, 9)
+	make_fold(3, 9)
+
+	child.cmd("3 | foldclose")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T

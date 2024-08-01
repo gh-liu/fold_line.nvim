@@ -34,11 +34,13 @@ And use the highlight group `FoldLineCurrent` to change the color of the line of
 
 change the char of the line:
 ```lua
-vim.g.fold_line_char_top_close = "+"  -- default: fillchars.foldclose or "+"
-vim.g.fold_line_char_close = "├"      -- default: fillchars.vertright or "├"
-vim.g.fold_line_char_open_sep = "│"   -- default: fillchars.foldsep or "│"
-vim.g.fold_line_char_open_start = "╭" -- default: "┌"
-vim.g.fold_line_char_open_end = "╰"   -- default: "└"
+vim.g.fold_line_char_top_close = "+"        -- default: fillchars.foldclose or "+"
+vim.g.fold_line_char_close = "├"            -- default: fillchars.vertright or "├"
+vim.g.fold_line_char_open_sep = "│"         -- default: fillchars.foldsep or "│"
+vim.g.fold_line_char_open_start = "╭"       -- default: "┌"
+vim.g.fold_line_char_open_end = "╰"         -- default: "└"
+vim.g.fold_line_char_open_start_close = "╒" -- default: "╒"
+vim.g.fold_line_char_open_end_close = "╘"   -- default: "╘"
 ```
 
 ## Current fold only
