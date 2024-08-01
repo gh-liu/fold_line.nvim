@@ -344,14 +344,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 								skip_rows = cur_line_finfo.lines
 
 								if sign == fold_signs.f_close then
-									local above_line_finfo = foldinfos[cur_line_finfo.start - 1]
-									if above_line_finfo.level < cur_line_finfo.level - 1 then
+									local prev_line_finfo = foldinfos[cur_line_finfo.start - 1]
+									if open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo) then
 										sign = fold_signs.f_open_start_close
 									end
 
-									local below_line = cur_line_finfo.start + cur_line_finfo.lines
-									local below_line_finfo = foldinfos[below_line]
-									if below_line_finfo.level < cur_line_finfo.level - 1 then
+									local next_line = cur_line_finfo.start + cur_line_finfo.lines
+									local next_line_finfo = foldinfos[next_line]
+									if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then
 										sign = fold_signs.f_open_end_close
 									end
 								end
