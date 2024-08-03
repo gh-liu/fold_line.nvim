@@ -274,7 +274,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							return true
 						end
 					else
-						if fold_end_line == cur_line or cursor_fold_top == cur_line then
+						if fold_end_line >= cur_line then
 							return true
 						end
 					end
@@ -354,6 +354,8 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 									local next_line = cur_line_finfo.start + cur_line_finfo.lines
 									local next_line_finfo = foldinfos[next_line]
+									local cur_line = next_line - 1
+									local cur_line_finfo = foldinfos[cur_line]
 									if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then
 										sign = fold_signs.f_open_end_close
 									end

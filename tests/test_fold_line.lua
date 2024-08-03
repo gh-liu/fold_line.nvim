@@ -372,4 +372,43 @@ T["end line of a fold is a closed sub fold: 1"] = function(buf_id, lines)
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+T["end line of a fold is a closed sub fold: 2"] = function(buf_id, lines)
+	set_lines(vim.split(
+		[[
+ fold
+         fold
+         fold
+         fold
+         fold
+         fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+                 fold
+         fold
+         fold
+         fold
+         fold
+         fold
+ fold]],
+		"\n"
+	))
+	make_fold(1, 22)
+	make_fold(2, 6)
+	make_fold(7, 16)
+	make_fold(7, 10)
+	make_fold(11, 16)
+	make_fold(17, 21)
+
+	child.cmd("12 | foldclose")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 return T
