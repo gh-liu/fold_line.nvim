@@ -23,6 +23,26 @@ local T = new_set({
 	},
 })
 
+---@type string[]
+local testfiles = vim.fs.find(function(name, _)
+	return name:match(".*txt$")
+end, {
+	path = "tests/testcases",
+	limit = math.huge,
+	type = "file",
+})
+
+for _, testfile in ipairs(testfiles) do
+	local name = vim.fn.fnamemodify(testfile, ":t:r")
+	local fold_cmd_file = testfile:match("(.*).txt") .. ".vim"
+
+	T["__" .. name] = function(buf_id, lines)
+		child.cmd("e " .. testfile)
+		child.cmd("source " .. fold_cmd_file)
+		expect.reference_screenshot(child.get_screenshot())
+	end
+end
+
 local set_lines = function(lines)
 	child.api.nvim_buf_set_lines(0, 0, -1, true, lines)
 end
@@ -30,149 +50,6 @@ end
 local make_fold = function(start_line, end_line)
 	child.cmd(tostring(start_line))
 	child.cmd("normal " .. tostring(end_line - start_line + 1) .. "zFzo")
-end
-
-T["basic"] = function(buf_id, lines)
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold3",
-		"    fold4.1",
-		"    fold4.1",
-		"    fold4.2",
-		"    fold4.2",
-		"   fold3",
-		"  fold2",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(2, 9)
-	make_fold(3, 8)
-	make_fold(4, 5)
-	make_fold(6, 7)
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["same fold start line"] = function(buf_id, lines)
-	set_lines({
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"    fold4",
-		"   fold2",
-		"  fold2",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(1, 9)
-	make_fold(1, 8)
-	make_fold(1, 7)
-	make_fold(1, 6)
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["same fold end line"] = function(buf_id, lines)
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold2",
-		"    fold2",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-	})
-	make_fold(1, 10)
-	make_fold(2, 10)
-	make_fold(3, 10)
-	make_fold(4, 10)
-	make_fold(5, 10)
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["current fold only"] = function(buf_id, lines)
-	child.lua("vim.g.fold_line_current_fold_only = true")
-
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold2",
-		"    fold2",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-		"     fold5",
-	})
-	make_fold(1, 10)
-	make_fold(2, 10)
-	make_fold(3, 10)
-	make_fold(4, 10)
-	make_fold(5, 10)
-
-	child.cmd("5")
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["fallback current closed fold"] = function(buf_id, lines)
-	child.lua("vim.g.fold_line_current_fold_only = true")
-
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold3",
-		"    fold4.1",
-		"    fold4.1",
-		"    fold4.2",
-		"    fold4.2",
-		"   fold3",
-		"  fold2",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(2, 9)
-	make_fold(3, 8)
-	make_fold(4, 5)
-	make_fold(6, 7)
-
-	child.cmd("4 | foldclose")
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["closed fold"] = function(buf_id, lines)
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold3",
-		"    fold4.1",
-		"    fold4.1",
-		"    fold4.2",
-		"    fold4.2",
-		"   fold3",
-		"  fold2",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(2, 9)
-	make_fold(3, 8)
-	make_fold(4, 5)
-	make_fold(6, 7)
-
-	child.cmd("4 | foldclose")
-	child.cmd("6 | foldclose")
-
-	expect.reference_screenshot(child.get_screenshot())
 end
 
 T["larger level on fold4.2 start line"] = function(buf_id, lines)
@@ -222,28 +99,6 @@ T["larger level below fold4.1 end line"] = function(buf_id, lines)
 	make_fold(4, 5) -- level4
 	make_fold(6, 10) -- level4
 	make_fold(6, 8) -- level5
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
-T["use indent of fold start line"] = function(buf_id, lines)
-	set_lines({
-		" fold1",
-		"  fold2",
-		"   fold3",
-		"            fold4.1",
-		"            fold4.1",
-		"      fold4.2",
-		"      fold4.2",
-		"   fold3",
-		"  fold2",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(2, 9)
-	make_fold(3, 8)
-	make_fold(4, 5)
-	make_fold(6, 7)
 
 	expect.reference_screenshot(child.get_screenshot())
 end
