@@ -343,21 +343,22 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						if indent >= 0 then
 							local sign = is_closed and close_sign(i_level, cur_line_finfo)
 							if sign then
-								fold_end_infos[cur_line_finfo.start][i_level + 1] = cur_line + cur_line_finfo.lines - 1
+								local end_line = cur_line + cur_line_finfo.lines - 1
+								fold_end_infos[cur_line_finfo.start][i_level + 1] = end_line
 								skip_rows = cur_line_finfo.lines
 
 								if sign == fold_signs.f_close then
 									local prev_line_finfo = foldinfos[cur_line_finfo.start - 1]
 									if open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo) then
 										sign = fold_signs.f_open_start_close
-									end
-
-									local next_line = cur_line_finfo.start + cur_line_finfo.lines
-									local next_line_finfo = foldinfos[next_line]
-									local cur_line = next_line - 1
-									local cur_line_finfo = foldinfos[cur_line]
-									if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then
-										sign = fold_signs.f_open_end_close
+									else
+										local next_line = end_line + 1
+										local next_line_finfo = foldinfos[next_line]
+										local cur_line = end_line
+										local cur_line_finfo = foldinfos[cur_line]
+										if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then
+											sign = fold_signs.f_open_end_close
+										end
 									end
 								end
 							end
