@@ -270,6 +270,46 @@ T["start line of a fold is a closed sub fold"] = function(buf_id, lines)
 	expect.reference_screenshot(child.get_screenshot())
 end
 
+T["start line of a fold is a closed sub fold: 1"] = function(buf_id, lines)
+	set_lines({
+		"fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"        fold",
+		"fold",
+	})
+	make_fold(1, 26)
+	make_fold(2, 9)
+	make_fold(10, 17)
+	make_fold(10, 15)
+	make_fold(18, 25)
+
+	child.cmd("10 | foldclose")
+
+	expect.reference_screenshot(child.get_screenshot())
+end
+
 T["end line of a fold is a closed sub fold"] = function(buf_id, lines)
 	set_lines({
 		" fold1",

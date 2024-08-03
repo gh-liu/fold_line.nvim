@@ -249,9 +249,12 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 		local cursor_fold_top
 		if is_cursor_fold_closed then
-			local fold_info = cursor_line_finfo
-			while fold_info.level >= cursor_line_flevel do
+			local fold_info = foldinfos[cursor_line_fstart]
+			if not (fold_info.llevel <= cursor_line_flevel - 1) then
 				fold_info = foldinfos[fold_info.start - 1]
+				while fold_info.level >= cursor_line_flevel do
+					fold_info = foldinfos[fold_info.start - 1]
+				end
 			end
 			cursor_fold_top = fold_info.start
 		end
@@ -271,7 +274,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 							return true
 						end
 					else
-						if fold_end_line == cur_line then
+						if fold_end_line == cur_line or cursor_fold_top == cur_line then
 							return true
 						end
 					end
