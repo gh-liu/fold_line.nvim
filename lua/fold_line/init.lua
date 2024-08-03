@@ -340,7 +340,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 						if indent >= 0 then
 							local sign = is_closed and close_sign(i_level, cur_line_finfo)
 							if sign then
-								fold_end_infos[cur_line_finfo.start][i_level] = cur_line + cur_line_finfo.lines
+								fold_end_infos[cur_line_finfo.start][i_level + 1] = cur_line + cur_line_finfo.lines - 1
 								skip_rows = cur_line_finfo.lines
 
 								if sign == fold_signs.f_close then
