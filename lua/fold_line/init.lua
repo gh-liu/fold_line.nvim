@@ -308,6 +308,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					if fold_end_line == cur_line then
 						return true
 					end
+
+					local cur_line_flines = cur_line_finfo.lines
+					if cur_line_flines > 0 and fold_end_line == cur_line_flines + cur_line_fstart - 1 then
+						return true
+					end
 				end
 			end
 
