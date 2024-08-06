@@ -196,6 +196,11 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		---@param next_line_finfo FoldInfo
 		---@return string|nil
 		local open_end_sign = function(i_level, cur_line, cur_line_finfo, next_line_finfo)
+			if cur_line_finfo.lines > 0 and i_level < cur_line_finfo.level - 1 then
+				cur_line = cur_line_finfo.start + cur_line_finfo.lines - 1
+				cur_line_finfo = foldinfos[cur_line]
+			end
+
 			local cur_line_fstart = cur_line_finfo.start
 			-- if the last line in a fold, it's must the end of the folds
 			if cur_line == last_line then
@@ -234,6 +239,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					sign = fold_signs.f_end
 				end
 			end
+
 			if sign then
 				save_fold_end_line(cur_line, i_level, cur_line_finfo)
 			end
