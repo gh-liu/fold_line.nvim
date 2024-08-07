@@ -197,8 +197,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		---@return string|nil
 		local open_end_sign = function(i_level, cur_line, cur_line_finfo, next_line_finfo)
 			if cur_line_finfo.lines > 0 and i_level < cur_line_finfo.level - 1 then
-				cur_line = cur_line_finfo.start + cur_line_finfo.lines - 1
+				local next_line = cur_line_finfo.start + cur_line_finfo.lines
+				cur_line = next_line - 1
 				cur_line_finfo = foldinfos[cur_line]
+				next_line_finfo = foldinfos[cur_line + 1]
 			end
 
 			local cur_line_fstart = cur_line_finfo.start
