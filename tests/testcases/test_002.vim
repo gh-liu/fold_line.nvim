@@ -18,10 +18,6 @@ normal! zo
 normal! zo
 3
 normal! zo
-let s:l = 4 - ((3 * winheight(0) + 23) / 47)
-if s:l < 1 | let s:l = 1 | endif
-keepjumps exe s:l
-normal! zt
-keepjumps 4
-normal! 0
+4
+normal! zc
 " vim: set ft=vim :

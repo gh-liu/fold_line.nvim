@@ -20,10 +20,4 @@ normal! zo
 normal! zc
 11
 normal! zc
-let s:l = 8 - ((7 * winheight(0) + 23) / 47)
-if s:l < 1 | let s:l = 1 | endif
-keepjumps exe s:l
-normal! zt
-keepjumps 8
-normal! 0
 " vim: set ft=vim :
