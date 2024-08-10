@@ -327,6 +327,16 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return false
 		end
 
+		local one_line_fold = function(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
+			if
+				open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
+				and open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
+			then
+				save_fold_end_line(cur_line, i_level, cur_line_finfo)
+				return ""
+			end
+		end
+
 		local row = toprow
 		while row <= botrow do
 			local skip_rows
@@ -375,6 +385,8 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 									end
 								end
 							end
+							sign = sign
+								or one_line_fold(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
 							sign = sign or open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
 							sign = sign or open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
 							sign = sign or fold_signs.f_sep
