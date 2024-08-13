@@ -327,13 +327,18 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return false
 		end
 
-		local one_line_fold = function(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
-			if
-				open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
-				and open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
-			then
+		local fold_sign = function(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
+			local start_sign = open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
+			local end_sign = open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
+			if start_sign and end_sign then
 				save_fold_end_line(cur_line, i_level, cur_line_finfo)
 				return ""
+			end
+			if start_sign then
+				return start_sign
+			end
+			if end_sign then
+				return end_sign
 			end
 		end
 
@@ -386,9 +391,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 								end
 							end
 							sign = sign
-								or one_line_fold(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
-							sign = sign or open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo)
-							sign = sign or open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo)
+								or fold_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
 							sign = sign or fold_signs.f_sep
 
 							if sign ~= "" then
