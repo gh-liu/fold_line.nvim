@@ -177,14 +177,15 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		})
 
 		local save_fold_end_line = function(cur_line, i_level, fold_info)
-			while i_level < fold_info.level do
-				fold_info = foldinfos[fold_info.start - 1]
+			fold_info = foldinfos[fold_info.start]
+			while i_level < fold_info.llevel do
+				fold_info = foldinfos[foldinfos[fold_info.start - 1].start]
 			end
 			-- if end line already exist, just return
 			if fold_end_infos[fold_info.start][i_level] then
 				return
 			end
-			if i_level == fold_info.level then
+			if i_level <= fold_info.llevel and i_level <= fold_info.level then
 				fold_end_infos[fold_info.start][i_level] = cur_line
 			end
 		end
