@@ -185,7 +185,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			if fold_end_infos[fold_info.start][i_level] then
 				return
 			end
-			if i_level <= fold_info.llevel and i_level <= fold_info.level then
+			if fold_info.llevel <= i_level and i_level <= fold_info.level then
 				fold_end_infos[fold_info.start][i_level] = cur_line
 			end
 		end
