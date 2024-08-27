@@ -92,14 +92,23 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 		local function save_fold_indent(cur_line_finfo)
 			local cur_line_flevel = cur_line_finfo.level
+			local cur_line_fllevel = cur_line_finfo.llevel
 			local cur_line_fstartindent = cur_line_finfo.start_indent
 			flevel_indents[cur_line_flevel] = cur_line_fstartindent
 
-			local cur_line_fllevel = cur_line_finfo.llevel
 			if cur_line_fllevel < cur_line_flevel then
-				local unit = cur_line_fstartindent / (cur_line_flevel + 1)
-				for i_level = cur_line_fllevel, cur_line_flevel - 1 do
-					flevel_indents[i_level] = math.ceil(i_level * unit)
+				local llevel1 = cur_line_fllevel - 1
+				local llevel1indent = flevel_indents[llevel1]
+				if llevel1indent and llevel1indent > 0 then
+					local unit = (cur_line_fstartindent - llevel1indent) / (cur_line_flevel - llevel1)
+					for i_level = cur_line_fllevel, cur_line_flevel - 1 do
+						flevel_indents[i_level] = llevel1indent + math.ceil((i_level - llevel1) * unit)
+					end
+				else
+					local unit = cur_line_fstartindent / (cur_line_flevel + 1)
+					for i_level = cur_line_fllevel, cur_line_flevel - 1 do
+						flevel_indents[i_level] = math.ceil(i_level * unit)
+					end
 				end
 			end
 		end
