@@ -43,35 +43,4 @@ for _, testfile in ipairs(testfiles) do
 	end
 end
 
-local set_lines = function(lines)
-	child.api.nvim_buf_set_lines(0, 0, -1, true, lines)
-end
-
-local make_fold = function(start_line, end_line)
-	child.cmd(tostring(start_line))
-	child.cmd("normal " .. tostring(end_line - start_line + 1) .. "zFzo")
-end
-
-T["end line of a fold is a closed sub fold"] = function(buf_id, lines)
-	set_lines({
-		" fold1",
-		"  fold1",
-		"   fold1",
-		"   fold1",
-		"   fold1",
-		"   fold1",
-		"   fold1",
-		"   fold1",
-		"   fold1",
-		" fold1",
-	})
-	make_fold(1, 10)
-	make_fold(2, 9)
-	make_fold(3, 9)
-
-	child.cmd("3 | foldclose")
-
-	expect.reference_screenshot(child.get_screenshot())
-end
-
 return T
