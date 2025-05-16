@@ -423,9 +423,14 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 									not vim.g.fold_line_current_fold_only
 									or (vim.g.fold_line_current_fold_only and is_cursor_fold)
 								then
-									config.virt_text[1][1] = sign
-									config.virt_text_win_col = indent + border_shift
-									api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+									if
+										#vim.fn.getline(cur_line) == 0
+										or vim.fn.indent(cur_line) >= indent + border_shift
+									then
+										config.virt_text[1][1] = sign
+										config.virt_text_win_col = indent + border_shift
+										api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
+									end
 								end
 							end
 						end
