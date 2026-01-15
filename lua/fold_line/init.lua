@@ -85,6 +85,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 
 		local leftcol = vim.fn.winsaveview().leftcol
 		local last_line = api.nvim_buf_line_count(bufnr)
+		local current_fold_only = vim.g.fold_line_current_fold_only == true
 
 		local wp = ffi.C.find_window_by_handle(winid, ffi.new("Error"))
 		local indent_cache = {} ---@type table<integer, integer>
@@ -431,10 +432,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 									config.priority = priority
 								end
 
-								if
-									not vim.g.fold_line_current_fold_only
-									or (vim.g.fold_line_current_fold_only and is_cursor_fold)
-								then
+								if (not current_fold_only) or is_cursor_fold then
 									if
 										#vim.fn.getline(cur_line) == 0
 										or vim.fn.indent(cur_line) >= indent + border_shift
