@@ -21,7 +21,7 @@
 20|~                                                                               
 21|~                                                                               
 22|~                                                                               
-23|tests/testcases/test_010.txt                                  4,1-8          All
+23|tests/testcases/tab_indented_nested_folds.txt                 4,1-8          All
 24|                                                                                
 
 --|---------|---------|---------|---------|---------|---------|---------|---------|

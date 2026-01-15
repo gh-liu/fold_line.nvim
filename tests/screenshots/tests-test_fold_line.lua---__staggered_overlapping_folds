@@ -21,7 +21,7 @@
 20|~                                                                               
 21|~                                                                               
 22|~                                                                               
-23|tests/testcases/test_004.txt                                  4,2            All
+23|tests/testcases/staggered_overlapping_folds.txt               4,2            All
 24|                                                                                
 
 --|---------|---------|---------|---------|---------|---------|---------|---------|

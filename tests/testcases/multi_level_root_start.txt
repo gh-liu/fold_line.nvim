@@ -1,0 +1,6 @@
+root
+  mid
+    leaf
+    leaf
+  mid
+root

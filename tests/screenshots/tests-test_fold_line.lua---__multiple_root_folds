@@ -21,7 +21,7 @@
 20|│       └fold",                                                                 
 21|└fold",                                                                         
 22|~                                                                               
-23|tests/testcases/test_007.txt                                  10,1           All
+23|tests/testcases/multiple_root_folds.txt                       10,1           All
 24|                                                                                
 
 --|---------|---------|---------|---------|---------|---------|---------|---------|
