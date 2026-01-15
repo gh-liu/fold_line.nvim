@@ -83,7 +83,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 	end
 
 	api.nvim_win_call(winid, function()
-		api.nvim_win_set_hl_ns(winid, ns)
+		local set_hl_ns = api.nvim_win_set_hl_ns
+		local set_extmark = api.nvim_buf_set_extmark
+		local virt_text = config.virt_text[1]
+		set_hl_ns(winid, ns)
 
 		local fn = vim.fn
 		local leftcol = fn.winsaveview().leftcol
@@ -438,23 +441,18 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 									(not is_cursor_fold_closed and cursor_fold(i_level, cur_line_finfo, cur_line))
 									or (is_cursor_fold_closed and cursor_fold_closed(i_level, cur_line_finfo, cur_line))
 								then
-									config.virt_text[1][2] = "FoldLineCurrent"
+									virt_text[2] = "FoldLineCurrent"
 									config.priority = priority + 1
 									is_cursor_fold = true
 								else
-									config.virt_text[1][2] = "FoldLine"
+									virt_text[2] = "FoldLine"
 									config.priority = priority
 								end
 
 								if (not current_fold_only) or is_cursor_fold then
-									if
-										#vim.fn.getline(cur_line) == 0
-										or vim.fn.indent(cur_line) >= indent + border_shift
-									then
-										config.virt_text[1][1] = sign
-										config.virt_text_win_col = indent + border_shift
-										api.nvim_buf_set_extmark(bufnr, ns, row, 0, config)
-									end
+									virt_text[1] = sign
+									config.virt_text_win_col = indent + border_shift
+									set_extmark(bufnr, ns, row, 0, config)
 								end
 							end
 						end
