@@ -25,14 +25,16 @@ ffi.cdef([[
 ---@param lnum integer
 ---@param indent_cache table<integer, integer>
 ---@return FoldInfo|?
+local indent = vim.fn.indent
+
 local get_fold_info = function(wp, lnum, indent_cache)
 	local foldinfo = ffi.C.fold_info(wp, lnum)
 	local start_indent
 	if foldinfo.level > 0 and foldinfo.start > 0 then
-		start_indent = indent_cache[foldinfo.start] or vim.fn.indent(foldinfo.start)
+		start_indent = indent_cache[foldinfo.start] or indent(foldinfo.start)
 		indent_cache[foldinfo.start] = start_indent
 	else
-		start_indent = vim.fn.indent(foldinfo.start)
+		start_indent = indent(foldinfo.start)
 	end
 	return {
 		start = foldinfo.start,
@@ -83,7 +85,8 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 	api.nvim_win_call(winid, function()
 		api.nvim_win_set_hl_ns(winid, ns)
 
-		local leftcol = vim.fn.winsaveview().leftcol
+		local fn = vim.fn
+		local leftcol = fn.winsaveview().leftcol
 		local last_line = api.nvim_buf_line_count(bufnr)
 		local current_fold_only = vim.g.fold_line_current_fold_only == true
 
@@ -269,7 +272,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			return sign
 		end
 
-		local cursor_line = vim.fn.line(".")
+		local cursor_line = fn.line(".")
 		local cursor_line_finfo = foldinfos[cursor_line]
 		local cursor_line_flevel = cursor_line_finfo.level
 		local cursor_line_fstart = cursor_line_finfo.start
