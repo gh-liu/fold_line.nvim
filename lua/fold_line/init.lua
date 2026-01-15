@@ -119,16 +119,20 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			if cur_line_fllevel < cur_line_flevel then
 				local llevel1 = cur_line_fllevel - 1
 				local llevel1indent = flevel_indents[llevel1]
-				if llevel1indent and llevel1indent > 0 then
-					local unit = (cur_line_fstartindent - llevel1indent) / (cur_line_flevel - llevel1)
-					for i_level = cur_line_fllevel, cur_line_flevel - 1 do
-						flevel_indents[i_level] = llevel1indent + math.ceil((i_level - llevel1) * unit)
+				if llevel1indent == nil and cur_line_finfo.start > 1 then
+					local parent = foldinfos[cur_line_finfo.start - 1]
+					if parent and parent.level > 0 then
+						llevel1indent = parent.start_indent
 					end
-				else
-					local unit = cur_line_fstartindent / (cur_line_flevel + 1)
-					for i_level = cur_line_fllevel, cur_line_flevel - 1 do
-						flevel_indents[i_level] = math.ceil(i_level * unit)
-					end
+				end
+
+				llevel1indent = llevel1indent or 0
+				local unit = (cur_line_fstartindent - llevel1indent) / (cur_line_flevel - llevel1)
+				if unit < 1 then
+					unit = 1
+				end
+				for i_level = cur_line_fllevel, cur_line_flevel - 1 do
+					flevel_indents[i_level] = llevel1indent + math.ceil((i_level - llevel1) * unit)
 				end
 			end
 		end
