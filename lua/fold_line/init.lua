@@ -21,18 +21,25 @@ ffi.cdef([[
 ]])
 
 ---@alias FoldInfo {start:number, level:number, llevel:number, lines:number, start_indent:number}
----@param win integer
+---@param wp userdata
 ---@param lnum integer
+---@param indent_cache table<integer, integer>
 ---@return FoldInfo|?
-local get_fold_info = function(win, lnum)
-	local wp = ffi.C.find_window_by_handle(win, ffi.new("Error"))
+local get_fold_info = function(wp, lnum, indent_cache)
 	local foldinfo = ffi.C.fold_info(wp, lnum)
+	local start_indent
+	if foldinfo.level > 0 and foldinfo.start > 0 then
+		start_indent = indent_cache[foldinfo.start] or vim.fn.indent(foldinfo.start)
+		indent_cache[foldinfo.start] = start_indent
+	else
+		start_indent = vim.fn.indent(foldinfo.start)
+	end
 	return {
 		start = foldinfo.start,
 		level = foldinfo.level,
 		llevel = foldinfo.llevel,
 		lines = foldinfo.lines,
-		start_indent = vim.fn.indent(foldinfo.start), -- indent of start line
+		start_indent = start_indent, -- indent of start line
 	} ---@type FoldInfo
 end
 
@@ -79,10 +86,12 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local leftcol = vim.fn.winsaveview().leftcol
 		local last_line = api.nvim_buf_line_count(bufnr)
 
+		local wp = ffi.C.find_window_by_handle(winid, ffi.new("Error"))
+		local indent_cache = {} ---@type table<integer, integer>
 		local foldinfos = {} ---@type FoldInfo[]
 		setmetatable(foldinfos, {
 			__index = function(infos, line)
-				local foldinfo = get_fold_info(winid, line)
+				local foldinfo = get_fold_info(wp, line, indent_cache)
 				rawset(infos, line, foldinfo)
 				return foldinfo
 			end,
@@ -356,6 +365,9 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		while row <= botrow do
 			local skip_rows
 			local cur_line = row + 1
+			if cur_line > last_line then
+				break
+			end
 			local cur_line_finfo = foldinfos[cur_line]
 			if cur_line_finfo then
 				local cur_line_flevel = cur_line_finfo.level
