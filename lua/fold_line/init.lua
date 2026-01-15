@@ -89,6 +89,13 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local leftcol = fn.winsaveview().leftcol
 		local last_line = api.nvim_buf_line_count(bufnr)
 		local current_fold_only = vim.g.fold_line_current_fold_only == true
+		local f_top_close = fold_signs.f_top_close
+		local f_close = fold_signs.f_close
+		local f_sep = fold_signs.f_sep
+		local f_open = fold_signs.f_open
+		local f_end = fold_signs.f_end
+		local f_open_start_close = fold_signs.f_open_start_close
+		local f_open_end_close = fold_signs.f_open_end_close
 
 		local wp = ffi.C.find_window_by_handle(winid, ffi.new("Error"))
 		local indent_cache = {} ---@type table<integer, integer>
@@ -153,10 +160,10 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			local cur_line_flevel = cur_line_finfo.level
 
 			if (cur_line_flevel - 1) == i_level then
-				return fold_signs.f_close
+				return f_close
 			end
 			if cur_line_flevel == 1 then
-				return fold_signs.f_top_close
+				return f_top_close
 			end
 		end
 
@@ -169,7 +176,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 		local open_start_sign = function(i_level, cur_line, cur_line_finfo, prev_line_finfo)
 			-- if the 1st line in a fold, it's must the start of the folds
 			if cur_line == 1 then
-				return fold_signs.f_open
+				return f_open
 			end
 
 			local cur_line_fstart = cur_line_finfo.start
@@ -182,7 +189,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 				local is_closed = cur_line_finfo.lines > 0
 
 				if cur_line_fllevel <= i_level and i_level <= cur_line_flevel then
-					sign = fold_signs.f_open
+					sign = f_open
 				end
 
 				sign = (is_closed and sign) and "" or sign
@@ -230,7 +237,7 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 			-- if the last line in a fold, it's must the end of the folds
 			if cur_line == last_line then
 				save_fold_end_line(cur_line, i_level, cur_line_finfo)
-				return fold_signs.f_end
+				return f_end
 			end
 
 			local cur_line_flevel = cur_line_finfo.level
@@ -248,20 +255,20 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 					start = next_line_fllevel
 				end
 				if start <= i_level and i_level <= cur_line_flevel then
-					sign = fold_signs.f_end
+					sign = f_end
 				end
 			end
 
 			-- same level but not same fold
 			if next_line_flevel == cur_line_flevel and (cur_line_fstart < next_line_fstart) then
 				if next_line_fllevel <= i_level and i_level <= next_line_flevel then
-					sign = fold_signs.f_end
+					sign = f_end
 				end
 			end
 
 			if next_line_flevel > cur_line_flevel then
 				if next_line_fllevel <= i_level and i_level <= cur_line_flevel then
-					sign = fold_signs.f_end
+					sign = f_end
 				end
 			end
 
@@ -401,24 +408,24 @@ local function on_win(_, winid, bufnr, toprow, botrow)
 								fold_end_infos[cur_line_finfo.start][i_level + 1] = end_line
 								skip_rows = cur_line_finfo.lines
 
-								if sign == fold_signs.f_close then
+								if sign == f_close then
 									local prev_line_finfo = foldinfos[cur_line_finfo.start - 1]
 									if open_start_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo) then
-										sign = fold_signs.f_open_start_close
+										sign = f_open_start_close
 									else
 										local next_line = end_line + 1
 										local next_line_finfo = foldinfos[next_line]
 										local cur_line = end_line
 										local cur_line_finfo = foldinfos[cur_line]
 										if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then
-											sign = fold_signs.f_open_end_close
+											sign = f_open_end_close
 										end
 									end
 								end
 							end
 							sign = sign
 								or fold_sign(i_level, cur_line, cur_line_finfo, prev_line_finfo, next_line_finfo)
-							sign = sign or fold_signs.f_sep
+							sign = sign or f_sep
 
 							if sign ~= "" then
 								local is_cursor_fold = false
