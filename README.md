@@ -47,6 +47,24 @@ vim.g.fold_line_char_open_end_close = "╘"   -- default: "╘"
 
 To show lines for the current fold only, set `vim.g.fold_line_current_fold_only` to `true`.
 
+## Bar position strategy
+
+The “bar” is the rendered character (for example `│`, `┌`, `└`) drawn via virtual text.
+
+You can control how its screen column is computed via `fold_line_bar_pos_strategy`:
+
+- buffer-local: `vim.b.fold_line_bar_pos_strategy`
+- window-local: `vim.w.fold_line_bar_pos_strategy`
+- global: `vim.g.fold_line_bar_pos_strategy`
+
+Priority: `b:` > `w:` > `g:` > default.
+
+- `vim.g.fold_line_bar_pos_strategy = "indent"`: align bars to (fold start) indentation (legacy behavior).
+- `vim.g.fold_line_bar_pos_strategy = "level"`: align bars by fold level (fixed step per level, like a foldcolumn).
+- `vim.g.fold_line_bar_pos_strategy = "hybrid"`: prefer `"indent"`, but auto-degrade to `"level"` when foldmethod is `expr`/`syntax` (where indentation is often not meaningful).
+
+If unset, it defaults to `"hybrid"`.
+
 ## Disabling
 
 Set `vim.g.fold_line_disable` (globally) or `vim.w.fold_line_disable` (for a window) or `vim.b.fold_line_disable` (for a buffer) to `true`.
