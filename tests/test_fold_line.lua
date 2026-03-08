@@ -43,4 +43,17 @@ for _, testfile in ipairs(testfiles) do
 	end
 end
 
+T["__profile_visible_fold_sampling"] = function()
+	child.cmd("let g:fold_line_profile=v:true")
+	child.cmd("e tests/testcases/split_nested_groups.txt")
+	child.cmd("source tests/testcases/split_nested_groups.vim")
+	child.cmd("redraw!")
+
+	local profile = child.lua_get("vim.g.fold_line_profile_last")
+
+	eq(profile.indent_sample_count, 4)
+	eq(profile.indent_bad_growth_count, 0)
+	eq(profile.use_level_spaced, false)
+end
+
 return T

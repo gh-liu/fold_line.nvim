@@ -92,7 +92,8 @@ function M.create_on_win(opts)
 			local flevel_indents = {} ---@type table<integer,integer>
 			local indent_clamp_count = 0
 			local indent_unit_calc_count = 0
-			local indent_zero_growth_multi_level = 0
+			local indent_bad_growth_count = 0
+			local indent_sample_count = 0
 			local use_level_spaced = force_level_spaced
 
 			local function save_fold_indent(cur_line_finfo)
@@ -102,29 +103,30 @@ function M.create_on_win(opts)
 				flevel_indents[cur_line_flevel] = cur_line_fstartindent
 
 				if cur_line_fllevel < cur_line_flevel then
-					local llevel1 = cur_line_fllevel - 1
-					local llevel1indent = flevel_indents[llevel1]
-					if llevel1indent == nil and cur_line_finfo.start > 1 then
+					local parent_level = cur_line_fllevel - 1
+					local parent_indent = flevel_indents[parent_level]
+					if parent_indent == nil and cur_line_finfo.start > 1 then
 						local parent = foldinfos[cur_line_finfo.start - 1]
 						if parent and parent.level > 0 then
-							llevel1indent = parent.start_indent
+							parent_indent = parent.start_indent
 						end
 					end
 
-					llevel1indent = llevel1indent or 0
-					local delta = (cur_line_fstartindent - llevel1indent)
-					local denom = (cur_line_flevel - llevel1)
+					parent_indent = parent_indent or 0
+					local delta = (cur_line_fstartindent - parent_indent)
+					local denom = (cur_line_flevel - parent_level)
 					local unit = delta / denom
+					indent_sample_count = indent_sample_count + 1
 					indent_unit_calc_count = indent_unit_calc_count + 1
+					if delta < denom then
+						indent_bad_growth_count = indent_bad_growth_count + 1
+					end
 					if unit < 1 then
 						unit = 1
 						indent_clamp_count = indent_clamp_count + 1
-						if delta == 0 and denom > 1 then
-							indent_zero_growth_multi_level = indent_zero_growth_multi_level + 1
-						end
 					end
 					for i_level = cur_line_fllevel, cur_line_flevel - 1 do
-						flevel_indents[i_level] = llevel1indent + math.ceil((i_level - llevel1) * unit)
+						flevel_indents[i_level] = parent_indent + math.ceil((i_level - parent_level) * unit)
 					end
 				end
 			end
@@ -141,17 +143,30 @@ function M.create_on_win(opts)
 				return flevel_indents[level] or 0
 			end
 
-			-- local cur_line = toprow + 1
-			local foldinfo = foldinfos[toprow + 1]
-			while foldinfo.level > 0 do
-				save_fold_indent(foldinfo)
-				foldinfo = foldinfos[foldinfo.start - 1]
+			local function warmup_fold_indents()
+				local foldinfo = foldinfos[toprow + 1]
+				while foldinfo.level > 0 do
+					save_fold_indent(foldinfo)
+					foldinfo = foldinfos[foldinfo.start - 1]
+				end
+
+				local line = toprow + 1
+				local limit = math.min(botrow + 1, last_line)
+				while line <= limit do
+					local line_finfo = foldinfos[line]
+					if line_finfo.level > 0 and line_finfo.start == line then
+						save_fold_indent(line_finfo)
+					end
+					line = line + 1
+				end
 			end
+
+			warmup_fold_indents()
 
 			if (not force_indent_aligned) and bar_pos_strategy == "hybrid" then
 				-- Conservative degradation: keep existing behavior for 'manual'/'marker' folds.
-				-- Only auto-degrade based on indent anomalies when foldmethod is actually 'indent'.
-				if foldmethod == "indent" and indent_zero_growth_multi_level > 0 then
+				-- Only auto-degrade based on visible indent anomalies when foldmethod is actually 'indent'.
+				if foldmethod == "indent" and indent_bad_growth_count > 0 then
 					use_level_spaced = true
 				end
 			end
@@ -509,6 +524,10 @@ function M.create_on_win(opts)
 					max_level = max_level,
 					disable_cursor_highlight = disable_cursor_highlight,
 					current_fold_only = current_fold_only,
+					indent_sample_count = indent_sample_count,
+					indent_bad_growth_count = indent_bad_growth_count,
+					indent_clamp_count = indent_clamp_count,
+					use_level_spaced = use_level_spaced,
 				}
 			end
 		end)
