@@ -43,6 +43,16 @@ vim.g.fold_line_char_open_start_close = "╒" -- default: "╒"
 vim.g.fold_line_char_open_end_close = "╘"   -- default: "╘"
 ```
 
+### Virtual text priority
+
+Set the extmark priority before the plugin loads:
+
+```lua
+vim.g.fold_line_char_priority = 100 -- default: 100
+```
+
+The current fold uses this value plus one so that it takes precedence over other fold lines. Lower the value if fold lines overwrite diagnostics or virtual text from other plugins; raise it if fold lines should take precedence instead.
+
 ## Current fold only
 
 To show lines for the current fold only, set `vim.g.fold_line_current_fold_only` to `true`.
