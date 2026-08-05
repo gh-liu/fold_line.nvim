@@ -1,5 +1,5 @@
 let g:fold_line_bar_pos_strategy = 'hybrid'
-set laststatus=0
+set laststatus=0 noruler noshowcmd
 setlocal fdm=manual
 setlocal fdl=99
 setlocal fen
