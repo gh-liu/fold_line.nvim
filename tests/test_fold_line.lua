@@ -56,4 +56,30 @@ T["__profile_visible_fold_sampling"] = function()
 	eq(profile.use_level_spaced, false)
 end
 
+T["__config_rejects_invalid_values"] = function()
+	child.lua([[
+		vim.g.fold_line_char_priority = "invalid"
+		vim.g.fold_line_char_open_start = { "not", "a", "string" }
+	]])
+
+	local built = child.lua_get([[require("fold_line.config").build()]])
+	eq(built.priority, 100)
+	eq(built.fold_signs.f_open, "┌")
+	eq(built.sign_width >= 1, true)
+end
+
+T["__profile_skips_large_closed_fold"] = function()
+	child.lua([[
+		vim.g.fold_line_profile = true
+		vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.fn.map(vim.fn.range(1, 2000), '"line " .. v:val'))
+	]])
+	child.cmd("setlocal foldmethod=manual")
+	child.cmd("1,2000fold")
+	child.cmd("normal! zM")
+	child.cmd("redraw!")
+
+	local profile = child.lua_get("vim.g.fold_line_profile_last")
+	eq(profile.foldinfo_calls < 50, true)
+end
+
 return T

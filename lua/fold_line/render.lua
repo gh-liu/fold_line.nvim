@@ -157,7 +157,7 @@ function M.create_on_win(opts)
 					if line_finfo.level > 0 and line_finfo.start == line then
 						save_fold_indent(line_finfo)
 					end
-					line = line + 1
+					line = line + (line_finfo.lines > 0 and line_finfo.lines or 1)
 				end
 			end
 
