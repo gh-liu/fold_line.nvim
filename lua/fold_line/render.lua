@@ -227,8 +227,12 @@ function M.create_on_win(opts)
 
 			local save_fold_end_line = function(cur_line, i_level, fold_info)
 				fold_info = foldinfos[fold_info.start]
-				while i_level < fold_info.llevel do
-					fold_info = foldinfos[foldinfos[fold_info.start - 1].start]
+				while i_level < fold_info.llevel and fold_info.start > 1 do
+					local previous = foldinfos[fold_info.start - 1]
+					if previous.level <= 0 then
+						break
+					end
+					fold_info = foldinfos[previous.start]
 				end
 				-- if end line already exist, just return
 				if fold_end_infos[fold_info.start][i_level] then
@@ -250,7 +254,7 @@ function M.create_on_win(opts)
 					local next_line = cur_line_finfo.start + cur_line_finfo.lines
 					cur_line = next_line - 1
 					cur_line_finfo = foldinfos[cur_line]
-					next_line_finfo = foldinfos[cur_line + 1]
+					next_line_finfo = cur_line < last_line and foldinfos[cur_line + 1] or empty_fold_info
 				end
 
 				local cur_line_fstart = cur_line_finfo.start
@@ -470,7 +474,8 @@ function M.create_on_win(opts)
 											sign = f_open_start_close
 										else
 											local next_line = end_line + 1
-											local next_line_finfo = foldinfos[next_line]
+											local next_line_finfo = next_line <= last_line and foldinfos[next_line]
+												or empty_fold_info
 											local cur_line = end_line
 											local cur_line_finfo = foldinfos[cur_line]
 											if open_end_sign(i_level, cur_line, cur_line_finfo, next_line_finfo) then

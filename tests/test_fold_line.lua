@@ -65,6 +65,15 @@ T["__profile_eof_folds_stay_in_bounds"] = function()
 	eq(profile.out_of_bounds_foldinfo_requests, 0)
 end
 
+T["__profile_closed_child_at_eof_stays_in_bounds"] = function()
+	child.cmd("e tests/testcases/closed_child_at_eof.txt")
+	child.cmd("source tests/testcases/closed_child_at_eof.vim")
+	child.cmd("redraw!")
+
+	local profile = child.lua_get("vim.g.fold_line_profile_last")
+	eq(profile.out_of_bounds_foldinfo_requests, 0)
+end
+
 T["__config_rejects_invalid_values"] = function()
 	child.lua([[
 		vim.g.fold_line_char_priority = "invalid"
@@ -75,6 +84,18 @@ T["__config_rejects_invalid_values"] = function()
 	eq(built.priority, 100)
 	eq(built.fold_signs.f_open, "┌")
 	eq(built.sign_width >= 1, true)
+end
+
+T["__config_normalizes_mixed_sign_widths"] = function()
+	child.lua([[
+		vim.g.fold_line_char_open_start = "=="
+		vim.g.fold_line_char_open_end = "|"
+	]])
+
+	local built = child.lua_get([[require("fold_line.config").build()]])
+	eq(built.sign_width, 2)
+	eq(built.border_shift, -2)
+	eq(child.lua_get([[vim.fn.strdisplaywidth(require("fold_line.config").build().fold_signs.f_end)]]), 2)
 end
 
 T["__ffi_normalizes_lines_outside_folds"] = function()

@@ -1,0 +1,7 @@
+     parent with enough text to allow deterministic horizontal scrolling
+         child with enough text to allow deterministic horizontal scrolling
+         content with enough text to allow deterministic horizontal scrolling
+         content with enough text to allow deterministic horizontal scrolling
+         content with enough text to allow deterministic horizontal scrolling
+         child end with enough text to allow deterministic horizontal scrolling
+     parent end with enough text to allow deterministic horizontal scrolling

@@ -1,0 +1,9 @@
+outside
+  parent
+    child
+      leaf
+      leaf content
+      leaf end
+    child end
+  parent end
+outside
