@@ -25,13 +25,18 @@ local indent = vim.fn.indent
 ---@return FoldInfo|?
 function M.get_fold_info(wp, lnum, indent_cache)
 	local foldinfo = ffi.C.fold_info(wp, lnum)
-	local start_indent
-	if foldinfo.level > 0 and foldinfo.start > 0 then
-		start_indent = indent_cache[foldinfo.start] or indent(foldinfo.start)
-		indent_cache[foldinfo.start] = start_indent
-	else
-		start_indent = indent(foldinfo.start)
+	if foldinfo.level <= 0 or foldinfo.start <= 0 then
+		return {
+			start = 0,
+			level = 0,
+			llevel = 0,
+			lines = 0,
+			start_indent = 0,
+		}
 	end
+
+	local start_indent = indent_cache[foldinfo.start] or indent(foldinfo.start)
+	indent_cache[foldinfo.start] = start_indent
 	return {
 		start = foldinfo.start,
 		level = foldinfo.level,

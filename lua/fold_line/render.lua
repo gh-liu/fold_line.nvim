@@ -1,6 +1,13 @@
 local M = {}
 
 local api = vim.api
+local empty_fold_info = {
+	start = 0,
+	level = 0,
+	llevel = 0,
+	lines = 0,
+	start_indent = 0,
+}
 
 ---@param opts table
 ---@return fun(_, winid:integer, bufnr:integer, toprow:integer, botrow:integer)
@@ -48,11 +55,11 @@ function M.create_on_win(opts)
 				bar_pos_strategy = "hybrid"
 			end
 
-			-- hybrid: prefer indent alignment, but degrade to level-spaced when indent->level mapping is clearly unreliable.
+			-- Keep the strategy stable across redraws: hybrid only uses level spacing
+			-- for fold methods whose levels are not derived from indentation.
 			local foldmethod = vim.wo[winid].foldmethod
 			local force_level_spaced = (bar_pos_strategy == "level")
 				or (bar_pos_strategy == "hybrid" and (foldmethod == "expr" or foldmethod == "syntax"))
-			local force_indent_aligned = (bar_pos_strategy == "indent")
 
 			local max_level = tonumber(vim.g.fold_line_max_level)
 			if max_level ~= nil and max_level < 1 then
@@ -74,12 +81,18 @@ function M.create_on_win(opts)
 			local profile_start_ns
 			local foldinfo_calls = 0
 			local extmark_calls = 0
+			local ancestor_hops = 0
+			local out_of_bounds_foldinfo_requests = 0
 			if profile_enabled then
 				local uv = vim.uv or vim.loop
 				profile_start_ns = uv.hrtime()
 			end
 			setmetatable(foldinfos, {
 				__index = function(infos, line)
+					if line < 1 or line > last_line then
+						out_of_bounds_foldinfo_requests = out_of_bounds_foldinfo_requests + 1
+						return empty_fold_info
+					end
 					if profile_enabled then
 						foldinfo_calls = foldinfo_calls + 1
 					end
@@ -91,7 +104,6 @@ function M.create_on_win(opts)
 
 			local flevel_indents = {} ---@type table<integer,integer>
 			local indent_clamp_count = 0
-			local indent_unit_calc_count = 0
 			local indent_bad_growth_count = 0
 			local indent_sample_count = 0
 			local use_level_spaced = force_level_spaced
@@ -117,7 +129,6 @@ function M.create_on_win(opts)
 					local denom = (cur_line_flevel - parent_level)
 					local unit = delta / denom
 					indent_sample_count = indent_sample_count + 1
-					indent_unit_calc_count = indent_unit_calc_count + 1
 					if delta < denom then
 						indent_bad_growth_count = indent_bad_growth_count + 1
 					end
@@ -133,43 +144,33 @@ function M.create_on_win(opts)
 
 			--- get indent of a level with fallback
 			---@param level integer
-			---@param cur_line_finfo FoldInfo
-			---@param cur_line integer
 			---@return integer
-			local flevel_indent = function(level, cur_line_finfo, cur_line)
-				if cur_line == cur_line_finfo.start then
-					save_fold_indent(cur_line_finfo)
-				end
+			local flevel_indent = function(level)
 				return flevel_indents[level] or 0
 			end
 
 			local function warmup_fold_indents()
 				local foldinfo = foldinfos[toprow + 1]
-				while foldinfo.level > 0 do
-					save_fold_indent(foldinfo)
+				local ancestry = {}
+				local seen_starts = {}
+				while foldinfo.level > 0 and not seen_starts[foldinfo.start] do
+					ancestry[#ancestry + 1] = foldinfo
+					seen_starts[foldinfo.start] = true
+					if foldinfo.start <= 1 then
+						break
+					end
+					ancestor_hops = ancestor_hops + 1
 					foldinfo = foldinfos[foldinfo.start - 1]
 				end
 
-				local line = toprow + 1
-				local limit = math.min(botrow + 1, last_line)
-				while line <= limit do
-					local line_finfo = foldinfos[line]
-					if line_finfo.level > 0 and line_finfo.start == line then
-						save_fold_indent(line_finfo)
-					end
-					line = line + (line_finfo.lines > 0 and line_finfo.lines or 1)
+				-- Replay from the outermost fold towards the fold at the top of the
+				-- viewport. A preceding sibling can then never overwrite the active one.
+				for i = #ancestry, 1, -1 do
+					save_fold_indent(ancestry[i])
 				end
 			end
 
 			warmup_fold_indents()
-
-			if (not force_indent_aligned) and bar_pos_strategy == "hybrid" then
-				-- Conservative degradation: keep existing behavior for 'manual'/'marker' folds.
-				-- Only auto-degrade based on visible indent anomalies when foldmethod is actually 'indent'.
-				if foldmethod == "indent" and indent_bad_growth_count > 0 then
-					use_level_spaced = true
-				end
-			end
 
 			--- check if in i_level is a close_sign
 			---@param i_level integer
@@ -326,10 +327,17 @@ function M.create_on_win(opts)
 
 				if is_cursor_fold_closed then
 					local fold_info = foldinfos[cursor_line_fstart]
-					if not (fold_info.llevel <= cursor_line_flevel - 1) then
-						fold_info = foldinfos[foldinfos[fold_info.start - 1].start]
-						while fold_info.llevel >= cursor_line_flevel do
-							fold_info = foldinfos[foldinfos[fold_info.start - 1].start]
+					if cursor_line_flevel > 1 and not (fold_info.llevel <= cursor_line_flevel - 1) then
+						local previous = foldinfos[fold_info.start - 1]
+						if previous.level > 0 then
+							fold_info = foldinfos[previous.start]
+						end
+						while fold_info.llevel >= cursor_line_flevel and fold_info.start > 1 do
+							previous = foldinfos[fold_info.start - 1]
+							if previous.level <= 0 then
+								break
+							end
+							fold_info = foldinfos[previous.start]
 						end
 					end
 					cursor_fold_top = fold_info.start
@@ -431,6 +439,9 @@ function M.create_on_win(opts)
 							to_level = max_level
 						end
 
+						if cur_line == cur_line_finfo.start then
+							save_fold_indent(cur_line_finfo)
+						end
 						local base_indent = flevel_indents[1] or 0
 
 						for i_level = 1, to_level do
@@ -440,7 +451,7 @@ function M.create_on_win(opts)
 								raw_col = (base_indent + (i_level - 1) * sign_width) - leftcol
 								col = raw_col + border_shift
 							else
-								local indent = flevel_indent(i_level, cur_line_finfo, cur_line)
+								local indent = flevel_indent(i_level)
 								raw_col = indent - leftcol
 								col = raw_col + border_shift
 							end
@@ -528,6 +539,8 @@ function M.create_on_win(opts)
 					indent_bad_growth_count = indent_bad_growth_count,
 					indent_clamp_count = indent_clamp_count,
 					use_level_spaced = use_level_spaced,
+					ancestor_hops = ancestor_hops,
+					out_of_bounds_foldinfo_requests = out_of_bounds_foldinfo_requests,
 				}
 			end
 		end)

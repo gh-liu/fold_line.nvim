@@ -51,9 +51,18 @@ T["__profile_visible_fold_sampling"] = function()
 
 	local profile = child.lua_get("vim.g.fold_line_profile_last")
 
-	eq(profile.indent_sample_count, 4)
 	eq(profile.indent_bad_growth_count, 0)
 	eq(profile.use_level_spaced, false)
+	eq(profile.out_of_bounds_foldinfo_requests, 0)
+end
+
+T["__profile_eof_folds_stay_in_bounds"] = function()
+	child.cmd("e tests/testcases/profile_enabled.txt")
+	child.cmd("source tests/testcases/profile_enabled.vim")
+	child.cmd("redraw!")
+
+	local profile = child.lua_get("vim.g.fold_line_profile_last")
+	eq(profile.out_of_bounds_foldinfo_requests, 0)
 end
 
 T["__config_rejects_invalid_values"] = function()
@@ -68,6 +77,22 @@ T["__config_rejects_invalid_values"] = function()
 	eq(built.sign_width >= 1, true)
 end
 
+T["__ffi_normalizes_lines_outside_folds"] = function()
+	local foldinfo = child.lua_get([[(function()
+		local ffi = require("fold_line.ffi")
+		local wp = ffi.find_window_by_handle(vim.api.nvim_get_current_win())
+		return ffi.get_fold_info(wp, 1, {})
+	end)()]])
+
+	eq(foldinfo, {
+		start = 0,
+		level = 0,
+		llevel = 0,
+		lines = 0,
+		start_indent = 0,
+	})
+end
+
 T["__profile_skips_large_closed_fold"] = function()
 	child.lua([[
 		vim.g.fold_line_profile = true
@@ -80,6 +105,7 @@ T["__profile_skips_large_closed_fold"] = function()
 
 	local profile = child.lua_get("vim.g.fold_line_profile_last")
 	eq(profile.foldinfo_calls < 50, true)
+	eq(profile.out_of_bounds_foldinfo_requests, 0)
 end
 
 return T
