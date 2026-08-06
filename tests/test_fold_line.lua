@@ -7,16 +7,21 @@ local expect, eq = MiniTest.expect, MiniTest.expect.equality
 -- Create (but not start) child Neovim object
 local child = MiniTest.new_child_neovim()
 
+local function restart_plugin(before_require)
+	child.restart({ "--noplugin", "-u", "scripts/minimal_init.lua" })
+	if before_require then
+		child.lua(before_require)
+	end
+	child.lua([[M = require('fold_line')]])
+end
+
 -- Define main test set of this file
 local T = new_set({
 	-- Register hooks
 	hooks = {
 		-- This will be executed before every (even nested) case
 		pre_case = function()
-			-- Restart child process with custom 'init.lua' script
-			child.restart({ "-u", "scripts/minimal_init.lua" })
-			-- Load tested plugin
-			child.lua([[M = require('fold_line')]])
+			restart_plugin()
 		end,
 		-- This will be executed one after all tests from this set are finished
 		post_once = child.stop,
@@ -96,6 +101,287 @@ T["__config_normalizes_mixed_sign_widths"] = function()
 	eq(built.sign_width, 2)
 	eq(built.border_shift, -2)
 	eq(child.lua_get([[vim.fn.strdisplaywidth(require("fold_line.config").build().fold_signs.f_end)]]), 2)
+end
+
+T["__config_accepts_every_custom_sign_and_priority"] = function()
+	child.lua([[
+		vim.g.fold_line_char_top_close = "A"
+		vim.g.fold_line_char_close = "B"
+		vim.g.fold_line_char_open_sep = "C"
+		vim.g.fold_line_char_open_start = "D"
+		vim.g.fold_line_char_open_end = "E"
+		vim.g.fold_line_char_open_start_close = "F"
+		vim.g.fold_line_char_open_end_close = "G"
+		vim.g.fold_line_char_priority = "250.9"
+	]])
+
+	local built = child.lua_get([[require("fold_line.config").build()]])
+	eq(built.fold_signs, {
+		f_top_close = "A",
+		f_close = "B",
+		f_sep = "C",
+		f_open = "D",
+		f_end = "E",
+		f_open_start_close = "F",
+		f_open_end_close = "G",
+	})
+	eq(built.priority, 250)
+end
+
+T["__highlight_groups_use_documented_default_links"] = function()
+	local links = child.lua_get([[
+		{
+			vim.api.nvim_get_hl(0, { name = "FoldLine", link = true }).link,
+			vim.api.nvim_get_hl(0, { name = "FoldLineCurrent", link = true }).link,
+		}
+	]])
+
+	eq(links, { "Folded", "CursorLineFold" })
+end
+
+T["__highlight_groups_preserve_user_configuration"] = function()
+	restart_plugin([[
+		vim.api.nvim_set_hl(0, "FoldLine", { fg = 0x123456, bold = true })
+		vim.api.nvim_set_hl(0, "FoldLineCurrent", { bg = 0x654321, italic = true })
+		_G.fold_line_user_highlights = {
+			vim.api.nvim_get_hl(0, { name = "FoldLine", link = true }),
+			vim.api.nvim_get_hl(0, { name = "FoldLineCurrent", link = true }),
+		}
+	]])
+
+	local highlights = child.lua_get([[
+		{
+			before = _G.fold_line_user_highlights,
+			after = {
+				vim.api.nvim_get_hl(0, { name = "FoldLine", link = true }),
+				vim.api.nvim_get_hl(0, { name = "FoldLineCurrent", link = true }),
+			},
+		}
+	]])
+	eq(highlights.after, highlights.before)
+end
+
+T["__current_fold_uses_higher_configured_priority"] = function()
+	restart_plugin([[vim.g.fold_line_char_priority = 250]])
+
+	local priorities = child.lua_get([=[(function()
+		local api = vim.api
+		local ns = api.nvim_get_namespaces().FoldLine
+		local original_set_extmark = api.nvim_buf_set_extmark
+		local seen = { FoldLine = {}, FoldLineCurrent = {} }
+		api.nvim_buf_set_extmark = function(bufnr, mark_ns, row, col, opts)
+			if mark_ns == ns then
+				seen[opts.virt_text[1][2]][opts.priority] = true
+			end
+			return original_set_extmark(bufnr, mark_ns, row, col, opts)
+		end
+
+		local function contains_only(values, expected)
+			if not values[expected] then
+				return false
+			end
+			for value in pairs(values) do
+				if value ~= expected then
+					return false
+				end
+			end
+			return true
+		end
+
+		local ok, err = xpcall(function()
+			api.nvim_buf_set_lines(0, 0, -1, false, vim.fn.map(vim.fn.range(1, 8), '"line " .. v:val'))
+			vim.wo.foldmethod = "manual"
+			vim.cmd("3,6fold")
+			vim.cmd("1,8fold")
+			vim.cmd("normal! zR")
+			api.nvim_win_set_cursor(0, { 4, 0 })
+			vim.cmd("redraw!")
+		end, debug.traceback)
+		api.nvim_buf_set_extmark = original_set_extmark
+		if not ok then
+			error(err)
+		end
+		return {
+			normal = contains_only(seen.FoldLine, 250),
+			current = contains_only(seen.FoldLineCurrent, 251),
+		}
+	end)()]=])
+
+	eq(priorities, { normal = true, current = true })
+end
+
+T["__same_start_folds_share_available_indent_without_covering_text"] = function()
+	local result = child.lua_get([[(function()
+		local api = vim.api
+		local ns = api.nvim_get_namespaces().FoldLine
+		local original_set_extmark = api.nvim_buf_set_extmark
+		local marks = {}
+		api.nvim_buf_set_extmark = function(bufnr, mark_ns, row, col, opts)
+			if mark_ns == ns then
+				marks[#marks + 1] = {
+					win_col = opts.virt_text_win_col,
+					hl = opts.virt_text[1][2],
+				}
+			end
+			return original_set_extmark(bufnr, mark_ns, row, col, opts)
+		end
+
+		local function capture(indent)
+			vim.cmd("normal! zE")
+			local lines = vim.fn.map(vim.fn.range(1, 6), ('"%sline " .. v:val'):format(indent))
+			api.nvim_buf_set_lines(0, 0, -1, false, lines)
+			vim.wo.foldmethod = "manual"
+			vim.cmd("1,3fold")
+			vim.cmd("1,5fold")
+			vim.cmd("1,6fold")
+			vim.cmd("normal! zR")
+			api.nvim_win_set_cursor(0, { 2, 0 })
+			marks = {}
+			vim.cmd("redraw!")
+			return vim.deepcopy(marks)
+		end
+
+		local ok, one_cell, zero_cells = xpcall(function()
+			return capture(" "), capture("")
+		end, debug.traceback)
+		api.nvim_buf_set_extmark = original_set_extmark
+		if not ok then
+			error(one_cell)
+		end
+
+		local one_cell_is_safe = #one_cell > 0
+		local has_current = false
+		for _, mark in ipairs(one_cell) do
+			one_cell_is_safe = one_cell_is_safe and mark.win_col == 0
+			has_current = has_current or mark.hl == "FoldLineCurrent"
+		end
+		local zero_indent_shares_boundary = #zero_cells > 0
+		for _, mark in ipairs(zero_cells) do
+			zero_indent_shares_boundary = zero_indent_shares_boundary and mark.win_col == -1
+		end
+		return {
+			one_cell_is_safe = one_cell_is_safe,
+			has_current = has_current,
+			zero_indent_shares_boundary = zero_indent_shares_boundary,
+		}
+	end)()]])
+
+	eq(result, {
+		one_cell_is_safe = true,
+		has_current = true,
+		zero_indent_shares_boundary = true,
+	})
+end
+
+T["__current_highlight_follows_cursor_between_sibling_folds"] = function()
+	local result = child.lua_get([=[(function()
+		local api = vim.api
+		local ns = api.nvim_get_namespaces().FoldLine
+		local original_set_extmark = api.nvim_buf_set_extmark
+		local marks = {}
+		api.nvim_buf_set_extmark = function(bufnr, mark_ns, row, col, opts)
+			if mark_ns == ns then
+				marks[row] = marks[row] or {}
+				marks[row][opts.virt_text[1][2]] = true
+			end
+			return original_set_extmark(bufnr, mark_ns, row, col, opts)
+		end
+
+		local function contains_only(values, expected)
+			if not values or not values[expected] then
+				return false
+			end
+			for value in pairs(values) do
+				if value ~= expected then
+					return false
+				end
+			end
+			return true
+		end
+
+		local function capture(cursor_line)
+			marks = {}
+			api.nvim_win_set_cursor(0, { cursor_line, 0 })
+			vim.cmd("redraw!")
+			return vim.deepcopy(marks)
+		end
+
+		local ok, first, second = xpcall(function()
+			api.nvim_buf_set_lines(0, 0, -1, false, vim.fn.map(vim.fn.range(1, 7), '"line " .. v:val'))
+			vim.wo.foldmethod = "manual"
+			vim.cmd("1,3fold")
+			vim.cmd("5,7fold")
+			vim.cmd("normal! zR")
+			return capture(2), capture(6)
+		end, debug.traceback)
+		api.nvim_buf_set_extmark = original_set_extmark
+		if not ok then
+			error(first)
+		end
+		return {
+			first_first = contains_only(first[0], "FoldLineCurrent"),
+			first_second = contains_only(first[4], "FoldLine"),
+			second_first = contains_only(second[0], "FoldLine"),
+			second_second = contains_only(second[4], "FoldLineCurrent"),
+		}
+	end)()]=])
+
+	eq(result, {
+		first_first = true,
+		first_second = true,
+		second_first = true,
+		second_second = true,
+	})
+end
+
+T["__current_highlight_is_isolated_per_window"] = function()
+	local result = child.lua_get([[(function()
+		local api = vim.api
+		local ns = api.nvim_get_namespaces().FoldLine
+		local original_set_extmark = api.nvim_buf_set_extmark
+		local marks = {}
+		api.nvim_buf_set_extmark = function(bufnr, mark_ns, row, col, opts)
+			if mark_ns == ns and opts.virt_text[1][2] == "FoldLineCurrent" then
+				local winid = api.nvim_get_current_win()
+				marks[winid] = marks[winid] or {}
+				marks[winid][row] = true
+			end
+			return original_set_extmark(bufnr, mark_ns, row, col, opts)
+		end
+
+		local ok, windows = xpcall(function()
+			api.nvim_buf_set_lines(0, 0, -1, false, vim.fn.map(vim.fn.range(1, 7), '"line " .. v:val'))
+			vim.wo.foldmethod = "manual"
+			vim.cmd("1,3fold")
+			vim.cmd("5,7fold")
+			vim.cmd("normal! zR")
+			local left = api.nvim_get_current_win()
+			vim.cmd("vsplit")
+			local right = api.nvim_get_current_win()
+			api.nvim_win_set_cursor(left, { 2, 0 })
+			api.nvim_win_set_cursor(right, { 6, 0 })
+			marks = {}
+			vim.cmd("redraw!")
+			return { left = left, right = right }
+		end, debug.traceback)
+		api.nvim_buf_set_extmark = original_set_extmark
+		if not ok then
+			error(windows)
+		end
+		return {
+			left_first = marks[windows.left] and marks[windows.left][0] or false,
+			left_second = marks[windows.left] and marks[windows.left][4] or false,
+			right_first = marks[windows.right] and marks[windows.right][0] or false,
+			right_second = marks[windows.right] and marks[windows.right][4] or false,
+		}
+	end)()]])
+
+	eq(result, {
+		left_first = true,
+		left_second = false,
+		right_first = false,
+		right_second = true,
+	})
 end
 
 T["__ffi_normalizes_lines_outside_folds"] = function()

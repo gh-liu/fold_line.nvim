@@ -162,10 +162,8 @@ local function save_fold_indent(frame, info)
 		if delta < denom then
 			frame.profile.indent_bad_growth_count = frame.profile.indent_bad_growth_count + 1
 		end
-		if unit < 1 then
-			unit = 1
-			frame.profile.indent_clamp_count = frame.profile.indent_clamp_count + 1
-		end
+		-- Share available columns when indentation cannot fit every level instead
+		-- of pushing additional fold signs into source text.
 		for i = llevel, level - 1 do
 			frame.flevel_indents[i] = parent_indent + math.ceil((i - parent_level) * unit)
 		end
