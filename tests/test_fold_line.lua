@@ -129,4 +129,187 @@ T["__profile_skips_large_closed_fold"] = function()
 	eq(profile.out_of_bounds_foldinfo_requests, 0)
 end
 
+T["__generated_fold_forests_preserve_render_invariants"] = function()
+	local failures = child.lua_get([[(function()
+		local api = vim.api
+		local original_set_extmark = api.nvim_buf_set_extmark
+		local fold_ns = api.nvim_get_namespaces().FoldLine
+		local failures = {}
+		local marks = {}
+
+		api.nvim_buf_set_extmark = function(bufnr, ns, row, col, opts)
+			if ns == fold_ns then
+				marks[#marks + 1] = {
+					row = row,
+					col = col,
+					win_col = opts.virt_text_win_col,
+					text = opts.virt_text[1][1],
+					hl = opts.virt_text[1][2],
+					priority = opts.priority,
+					ephemeral = opts.ephemeral,
+				}
+			end
+			return original_set_extmark(bufnr, ns, row, col, opts)
+		end
+
+		local function check(ok, seed, message)
+			if not ok then
+				failures[#failures + 1] = ("seed %d: %s"):format(seed, message)
+			end
+		end
+
+		local function new_random(seed)
+			local state = seed
+			return function(limit)
+				state = (state * 48271) % 2147483647
+				return state % limit
+			end
+		end
+
+		local function generate_case(seed, line_count)
+			local random = new_random(seed)
+			local nodes = {}
+			local max_depth = 0
+
+			local function add_nodes(first, last, depth)
+				local line = first
+				while line < last do
+					if random(4) ~= 0 then
+						local max_length = math.min(14, last - line + 1)
+						local finish = line + 1 + random(max_length - 1)
+						nodes[#nodes + 1] = { first = line, last = finish, depth = depth }
+						max_depth = math.max(max_depth, depth)
+						if depth < 8 and finish - line >= 3 and random(3) ~= 0 then
+							add_nodes(line + 1, finish, depth + 1)
+						end
+						line = finish + 1
+					else
+						line = line + 1
+					end
+				end
+			end
+
+			add_nodes(1, line_count, 1)
+			if #nodes == 0 then
+				nodes[1] = { first = 1, last = line_count, depth = 1 }
+				max_depth = 1
+			end
+			return random, nodes, max_depth
+		end
+
+		local function mark_signature()
+			local unique = {}
+			for _, mark in ipairs(marks) do
+				local part = table.concat({
+					mark.row,
+					mark.col,
+					mark.win_col,
+					mark.text,
+					mark.hl,
+					mark.priority,
+				}, ":")
+				unique[part] = true
+			end
+			local parts = {}
+			for part in pairs(unique) do
+				parts[#parts + 1] = part
+			end
+			table.sort(parts)
+			return table.concat(parts, "|")
+		end
+
+		local ok, err = xpcall(function()
+			vim.g.fold_line_profile = true
+			vim.wo.foldmethod = "manual"
+			vim.wo.wrap = false
+
+			for seed = 1, 40 do
+				local line_count = 40 + seed
+				local random, nodes, max_depth = generate_case(seed, line_count)
+				local lines = {}
+				for line = 1, line_count do
+					local indent = random(13)
+					lines[line] = string.rep(" ", indent) .. "line " .. line
+				end
+
+				vim.cmd("normal! zE")
+				api.nvim_buf_set_lines(0, 0, -1, false, lines)
+				-- Manual folds close when created, so install descendants before their
+				-- parents to keep every generated range addressable.
+				for i = #nodes, 1, -1 do
+					local node = nodes[i]
+					vim.cmd(("%d,%dfold"):format(node.first, node.last))
+				end
+				local expected_levels = {}
+				for line = 1, line_count do
+					expected_levels[line] = 0
+				end
+				for _, node in ipairs(nodes) do
+					for line = node.first, node.last do
+						expected_levels[line] = expected_levels[line] + 1
+					end
+				end
+				for line = 1, line_count do
+					check(vim.fn.foldlevel(line) == expected_levels[line], seed,
+						("unexpected fold level at line %d"):format(line))
+				end
+
+				vim.cmd("normal! zR")
+				local anchor = nodes[1 + random(#nodes)]
+				for _, node in ipairs(nodes) do
+					node.closed = random(5) == 0
+				end
+				for i = #nodes, 1, -1 do
+					local node = nodes[i]
+					local contains_anchor = node.first <= anchor.first and anchor.first <= node.last
+					if node.closed and not contains_anchor then
+						api.nvim_win_set_cursor(0, { node.first, 0 })
+						vim.cmd("normal! zc")
+						check(vim.fn.foldclosed(node.first) == node.first, seed,
+							("failed to close fold %d:%d"):format(node.first, node.last))
+					end
+				end
+
+				api.nvim_win_set_cursor(0, { anchor.first, 0 })
+				vim.cmd("normal! zt")
+
+				marks = {}
+				vim.cmd("redraw!")
+				local first_signature = mark_signature()
+				local profile = vim.deepcopy(vim.g.fold_line_profile_last)
+
+				check(profile.out_of_bounds_foldinfo_requests == 0, seed, "out-of-bounds fold query")
+				check(profile.foldinfo_calls <= line_count, seed, "fold query count exceeds line count")
+				check(profile.ancestor_hops <= line_count, seed, "ancestry walk is not bounded")
+				check(profile.extmark_calls > 0, seed, "visible fold produced no extmarks")
+				check(profile.extmark_calls <= line_count * max_depth, seed, "extmark count exceeds topology bound")
+				check(#marks > 0, seed, "FoldLine namespace produced no extmarks")
+
+				for _, mark in ipairs(marks) do
+					check(mark.row >= 0 and mark.row < line_count, seed, "extmark row is outside the buffer")
+					check(mark.col == 0, seed, "extmark anchor column changed")
+					check(type(mark.win_col) == "number" and mark.win_col == math.floor(mark.win_col), seed,
+						"virtual column is not an integer")
+					check(mark.text ~= "", seed, "empty fold sign was rendered")
+					check(mark.hl == "FoldLine" or mark.hl == "FoldLineCurrent", seed, "unexpected highlight")
+					check(type(mark.priority) == "number" and mark.priority >= 0, seed, "invalid priority")
+					check(mark.ephemeral == true, seed, "fold sign is not ephemeral")
+				end
+
+				marks = {}
+				vim.cmd("redraw!")
+				check(mark_signature() == first_signature, seed, "identical redraws produced different extmarks")
+			end
+		end, debug.traceback)
+
+		api.nvim_buf_set_extmark = original_set_extmark
+		if not ok then
+			failures[#failures + 1] = err
+		end
+		return failures
+	end)()]])
+
+	eq(failures, {})
+end
+
 return T
